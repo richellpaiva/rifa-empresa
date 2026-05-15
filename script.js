@@ -2,7 +2,7 @@
 const SUPABASE_URL = 'https://SEU_PROJETO.supabase.co';
 const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON';
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let adminLogado = false;
 let config = {};
