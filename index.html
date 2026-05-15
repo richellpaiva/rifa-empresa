@@ -2,35 +2,23 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rifa da Empresa</title>
   <style>
-    * { box-sizing: border-box; }
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
       padding: 20px;
-      background: #f5f5f5;
-    }
-    .container {
       max-width: 800px;
       margin: 0 auto;
+      background: #f0f0f0;
+    }
+    .container {
       background: white;
       border-radius: 10px;
       padding: 20px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
-    h1, h2, h3 { margin-top: 0; }
-    .foto-brinde {
-      text-align: center;
-      margin: 20px 0;
-    }
-    .foto-brinde img {
-      max-width: 100%;
-      max-height: 250px;
-      border-radius: 10px;
-      object-fit: cover;
-    }
+    h1 { margin-top: 0; color: #333; }
     .pix-area {
       background: #e0f7fa;
       padding: 15px;
@@ -46,7 +34,6 @@
       text-align: center;
       border: 1px solid #ccc;
       border-radius: 5px;
-      background: white;
     }
     button {
       background: #0088cc;
@@ -59,16 +46,6 @@
       margin: 5px;
     }
     button:hover { background: #006699; }
-    .contador {
-      text-align: center;
-      font-size: 24px;
-      font-weight: bold;
-      background: #ff5722;
-      color: white;
-      padding: 15px;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
     .numeros-grid {
       display: flex;
       flex-wrap: wrap;
@@ -90,269 +67,170 @@
     .numero:hover { transform: scale(1.05); }
     .disponivel { background: green; color: white; }
     .ocupado { background: gray; color: white; }
-    .texto-explicativo {
-      background: #f9f9f9;
-      padding: 15px;
-      border-radius: 8px;
-      margin: 20px 0;
-      line-height: 1.5;
-    }
-    .botoes-acao {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin: 20px 0;
-    }
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 90%;
-      width: 400px;
-      text-align: center;
-    }
-    .modal-content input {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      font-size: 16px;
-    }
     .admin-link {
       text-align: center;
       margin-top: 30px;
       font-size: 12px;
     }
     .admin-link a { color: #999; text-decoration: none; }
-    .ganhador {
-      background: gold;
-      color: #333;
+    .status {
+      background: #f9f9f9;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
       text-align: center;
-      padding: 20px;
-      border-radius: 10px;
-      margin: 20px 0;
-      font-size: 20px;
-      font-weight: bold;
     }
-    footer {
-      text-align: center;
-      margin-top: 30px;
-      font-size: 12px;
-      color: #999;
-    }
-    @media (max-width: 600px) {
-      .numero { width: 45px; height: 45px; font-size: 14px; }
-      .contador { font-size: 18px; }
-    }
+    .erro { color: red; }
+    .sucesso { color: green; }
   </style>
 </head>
 <body>
-<div class="container" id="app">
-  <h1 id="titulo">Carregando...</h1>
+<div class="container">
+  <h1>Rifa da Empresa</h1>
   
-  <div class="foto-brinde" id="fotoDiv"></div>
+  <div class="pix-area">
+    <h3>💰 Chave PIX</h3>
+    <input type="text" id="chavePix" value="admin@empresa.com" readonly>
+    <br><br>
+    <button id="copiarPix">📋 Copiar chave PIX</button>
+  </div>
   
-  <div class="pix-area" id="pixDiv"></div>
+  <div id="statusMsg" class="status">Conectando ao Supabase...</div>
   
-  <div class="contador" id="contadorDiv">Carregando...</div>
+  <div class="numeros-grid" id="numerosGrid"></div>
   
-  <div class="texto-explicativo" id="textoDiv"></div>
-  
-  <div class="botoes-acao">
+  <div style="display: flex; gap: 10px; justify-content: center;">
     <button id="meusNumerosBtn">🔍 Meus números</button>
     <button id="whatsappBtn">📱 Compartilhar</button>
   </div>
   
-  <h3>Números disponíveis</h3>
-  <div class="numeros-grid" id="numerosGrid"></div>
-  
   <div class="admin-link"><a href="admin.html">🔒 Admin</a></div>
-  <footer>Rifa Online - Atualização automática</footer>
+  <div style="text-align: center; font-size: 12px; margin-top: 20px;">Rifa Online</div>
 </div>
 
-<!-- Modal para buscar meus números -->
-<div id="modalBusca" class="modal">
-  <div class="modal-content">
+<!-- Modal para busca -->
+<div id="modalBusca" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
+  <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:400px;">
     <h3>Buscar meus números</h3>
-    <input type="text" id="buscaNome" placeholder="Digite seu nome completo">
+    <input type="text" id="buscaNome" placeholder="Digite seu nome completo" style="width:100%; padding:10px; margin:10px 0;">
     <button id="confirmarBusca">Buscar</button>
     <button id="fecharBusca">Fechar</button>
-    <div id="resultadoBusca" style="margin-top: 15px; font-size: 14px;"></div>
+    <div id="resultadoBusca" style="margin-top:15px;"></div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // ========== CONFIGURAÇÃO ==========
+  // CONFIGURAÇÃO DO SUPABASE
   const SUPABASE_URL = 'https://wrofweogvhgkocevlvdf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
-  
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  
-  let configAtual = null;
-  let numerosAtuais = [];
-  
-  // ========== FUNÇÕES ==========
-  async function carregarConfig() {
-    const { data, error } = await supabase.from('config').select('*').eq('id', 1);
-    if (error) { console.error('Erro config:', error); return null; }
-    if (data && data.length > 0) return data[0];
-    return null;
-  }
-  
+
+  const statusDiv = document.getElementById('statusMsg');
+  const gridDiv = document.getElementById('numerosGrid');
+
+  // Função para carregar números
   async function carregarNumeros() {
-    const { data, error } = await supabase.from('numeros').select('*').order('numero', { ascending: true });
-    if (error) { console.error('Erro numeros:', error); return []; }
-    return data;
-  }
-  
-  function atualizarInterface() {
-    // Título
-    document.getElementById('titulo').textContent = configAtual?.titulo || 'Rifa da Empresa';
-    
-    // Foto
-    const fotoDiv = document.getElementById('fotoDiv');
-    if (configAtual?.foto_url) {
-      fotoDiv.innerHTML = `<img src="${configAtual.foto_url}" alt="Brinde">`;
-    } else {
-      fotoDiv.innerHTML = '';
-    }
-    
-    // Chave PIX
-    const pixDiv = document.getElementById('pixDiv');
-    if (configAtual?.chave_pix) {
-      pixDiv.innerHTML = `
-        <h3>💰 Chave PIX</h3>
-        <input type="text" id="chavePixInput" value="${configAtual.chave_pix}" readonly>
-        <br><br>
-        <button id="copiarPixBtn">📋 Copiar chave PIX</button>
-      `;
-      document.getElementById('copiarPixBtn')?.addEventListener('click', () => {
-        const input = document.getElementById('chavePixInput');
-        input.select();
-        document.execCommand('copy');
-        alert('Chave PIX copiada! ✅');
+    try {
+      statusDiv.innerHTML = '🔄 Carregando números...';
+      statusDiv.className = 'status';
+      
+      const resposta = await fetch(`${SUPABASE_URL}/rest/v1/numeros?select=*&order=numero.asc`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
       });
-    } else {
-      pixDiv.innerHTML = '';
-    }
-    
-    // Contador regressivo
-    const contadorDiv = document.getElementById('contadorDiv');
-    if (configAtual?.data_sorteio && !configAtual?.rifa_encerrada && !configAtual?.ganhador_nome) {
-      atualizarContador(configAtual.data_sorteio);
-      setInterval(() => atualizarContador(configAtual.data_sorteio), 1000);
-    } else if (configAtual?.ganhador_nome) {
-      contadorDiv.innerHTML = `🎉 PARABÉNS, ${configAtual.ganhador_nome}! 🎉<br>Número: ${configAtual.ganhador_numero}`;
-      contadorDiv.style.background = 'gold';
-      contadorDiv.style.color = '#333';
-    } else if (configAtual?.rifa_encerrada) {
-      contadorDiv.innerHTML = '🔒 RIFA ENCERRADA 🔒';
-    } else {
-      contadorDiv.innerHTML = '📅 Data do sorteio não definida';
-    }
-    
-    // Texto explicativo
-    const textoDiv = document.getElementById('textoDiv');
-    textoDiv.innerHTML = configAtual?.texto_explicativo || '';
-    
-    // Números
-    const grid = document.getElementById('numerosGrid');
-    grid.innerHTML = '';
-    for (const num of numerosAtuais) {
-      const div = document.createElement('div');
-      div.className = `numero ${num.nome_comprador ? 'ocupado' : 'disponivel'}`;
-      div.textContent = num.numero;
-      if (num.nome_comprador) {
-        div.title = `Comprador: ${num.nome_comprador}`;
-        div.onclick = () => alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}`);
-      } else {
-        div.title = 'Número disponível - Clique para comprar (Admin)';
+      
+      if (!resposta.ok) {
+        throw new Error(`HTTP ${resposta.status}: ${resposta.statusText}`);
       }
-      grid.appendChild(div);
+      
+      const numeros = await resposta.json();
+      
+      if (!numeros || numeros.length === 0) {
+        statusDiv.innerHTML = '⚠️ Nenhum número encontrado. Execute o setup no Supabase.';
+        statusDiv.className = 'status erro';
+        return;
+      }
+      
+      const disponiveis = numeros.filter(n => !n.nome_comprador).length;
+      statusDiv.innerHTML = `✅ ${numeros.length} números disponíveis (${disponiveis} livres, ${numeros.length - disponiveis} vendidos)`;
+      statusDiv.className = 'status sucesso';
+      
+      // Mostrar números
+      gridDiv.innerHTML = '';
+      for (const num of numeros) {
+        const div = document.createElement('div');
+        div.className = `numero ${num.nome_comprador ? 'ocupado' : 'disponivel'}`;
+        div.textContent = num.numero;
+        if (num.nome_comprador) {
+          div.title = `Comprador: ${num.nome_comprador}`;
+          div.onclick = () => alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}`);
+        }
+        gridDiv.appendChild(div);
+      }
+      
+    } catch (erro) {
+      console.error('Erro:', erro);
+      statusDiv.innerHTML = `❌ Erro: ${erro.message}`;
+      statusDiv.className = 'status erro';
+      gridDiv.innerHTML = '<p style="color:red">Não foi possível carregar os números. Verifique sua conexão.</p>';
     }
   }
-  
-  function atualizarContador(dataSorteio) {
-    const alvo = new Date(dataSorteio).getTime();
-    const agora = new Date().getTime();
-    const diff = alvo - agora;
-    
-    if (diff <= 0) {
-      document.getElementById('contadorDiv').innerHTML = '🎲 SORTEIO REALIZADO! 🎲';
-      return;
-    }
-    
-    const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const horas = Math.floor((diff % (86400000)) / (3600000));
-    const minutos = Math.floor((diff % 3600000) / 60000);
-    const segundos = Math.floor((diff % 60000) / 1000);
-    
-    document.getElementById('contadorDiv').innerHTML = `⏰ SORTEIO EM:<br>${dias}d ${horas}h ${minutos}m ${segundos}s`;
-  }
-  
-  // Buscar números por nome
-  document.getElementById('meusNumerosBtn').onclick = () => {
-    document.getElementById('modalBusca').style.display = 'flex';
+
+  // Copiar PIX
+  document.getElementById('copiarPix').onclick = () => {
+    const input = document.getElementById('chavePix');
+    input.select();
+    document.execCommand('copy');
+    alert('✅ Chave PIX copiada!');
   };
-  
+
+  // Modal de busca
+  const modal = document.getElementById('modalBusca');
+  document.getElementById('meusNumerosBtn').onclick = () => {
+    modal.style.display = 'flex';
+  };
   document.getElementById('fecharBusca').onclick = () => {
-    document.getElementById('modalBusca').style.display = 'none';
+    modal.style.display = 'none';
     document.getElementById('resultadoBusca').innerHTML = '';
   };
-  
   document.getElementById('confirmarBusca').onclick = async () => {
     const nome = document.getElementById('buscaNome').value.trim();
     if (!nome) {
       alert('Digite seu nome');
       return;
     }
-    const { data, error } = await supabase
-      .from('numeros')
-      .select('numero')
-      .eq('nome_comprador', nome);
-    
-    const resultadoDiv = document.getElementById('resultadoBusca');
-    if (error) {
-      resultadoDiv.innerHTML = 'Erro na busca';
-    } else if (data.length === 0) {
-      resultadoDiv.innerHTML = 'Nenhum número encontrado para este nome.';
-    } else {
-      const numeros = data.map(n => n.numero).sort((a,b) => a-b);
-      resultadoDiv.innerHTML = `🎯 Seus números: ${numeros.join(', ')}`;
+    try {
+      const resposta = await fetch(`${SUPABASE_URL}/rest/v1/numeros?select=numero&nome_comprador=eq.${encodeURIComponent(nome)}`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      const dados = await resposta.json();
+      const resultadoDiv = document.getElementById('resultadoBusca');
+      if (dados.length === 0) {
+        resultadoDiv.innerHTML = '<span style="color:red">❌ Nenhum número encontrado para este nome.</span>';
+      } else {
+        const numeros = dados.map(n => n.numero).sort((a,b) => a-b);
+        resultadoDiv.innerHTML = `<span style="color:green">✅ Seus números: ${numeros.join(', ')}</span>`;
+      }
+    } catch(e) {
+      document.getElementById('resultadoBusca').innerHTML = '<span style="color:red">Erro na busca</span>';
     }
   };
-  
+
   // WhatsApp
   document.getElementById('whatsappBtn').onclick = () => {
-    let texto = configAtual?.texto_compartilhamento || 'Participe da rifa!';
-    texto += `\n\nLink: ${window.location.href}`;
+    const texto = `Participe da rifa! 🎟️\nLink: ${window.location.href}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
   };
+
+  // Carregar ao iniciar
+  carregarNumeros();
   
-  // ========== CARREGAR TUDO ==========
-  async function carregarTudo() {
-    const config = await carregarConfig();
-    if (config) configAtual = config;
-    const numeros = await carregarNumeros();
-    numerosAtuais = numeros;
-    atualizarInterface();
-  }
-  
-  carregarTudo();
-  setInterval(carregarTudo, 5000); // Atualiza a cada 5 segundos
+  // Atualizar a cada 10 segundos
+  setInterval(carregarNumeros, 10000);
 </script>
 </body>
 </html>
