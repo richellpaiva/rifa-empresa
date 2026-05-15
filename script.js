@@ -1,7 +1,8 @@
 // Configurações do Supabase (SUBSTITUA PELOS SEUS DADOS)
-const SUPABASE_URL = 'https://SEU_PROJETO.supabase.co';
-const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON';
+const SUPABASE_URL = 'https://wrofweogvhgkoc evlvdf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Znd2VvZ3ZoZ2tvY2V2bHZkZiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzc4ODAzODE5LCJleHAiOjIwOTQzNzk4MTl9.LUrdkF9P-yWGFGwdV5dDm63UwvdbcQPpXqpZ5I3xu98';
 
+// Inicializa o Supabase (usando o objeto global carregado pelo HTML)
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let adminLogado = false;
