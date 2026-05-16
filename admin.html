@@ -81,6 +81,7 @@
   </div>
 
   <div id="painelAdmin" style="display: none;">
+    <!-- O conteúdo do painel é o mesmo, não vou repetir para economizar espaço -->
     <div class="card">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h1>👑 Painel Administrativo</h1>
@@ -147,11 +148,9 @@
 
 <script>
   (function() {
-    // Configuração do Supabase (URL e chave)
     const SUPABASE_URL = 'https://wrofweogvhgkocevlvdf.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
 
-    // Headers padrão para todas as requisições
     const headers = {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -168,7 +167,6 @@
       setTimeout(() => { div.className = 'mensagem'; div.textContent = ''; }, 3000);
     }
 
-    // ========== FUNÇÕES DE ACESSO AO SUPABASE USANDO FETCH ==========
     async function fetchSupabase(endpoint, options = {}) {
       const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
       const response = await fetch(url, { ...options, headers });
@@ -179,8 +177,9 @@
       return response.json();
     }
 
-    async function fazerLogin(username, password) {
-      const data = await fetchSupabase(`usuarios?username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&select=*`);
+    // CORREÇÃO: usar tabela "usuarios_admin" e colunas "usuario", "senha"
+    async function fazerLogin(usuario, senha) {
+      const data = await fetchSupabase(`usuarios_admin?usuario=eq.${encodeURIComponent(usuario)}&senha=eq.${encodeURIComponent(senha)}&select=*`);
       if (!data || data.length === 0) throw new Error('Usuário ou senha incorretos');
       return data[0];
     }
@@ -189,7 +188,7 @@
       if (!usuarioLogado) return;
       await fetchSupabase('logs', {
         method: 'POST',
-        body: JSON.stringify({ acao, usuario: usuarioLogado.username, data_hora: new Date() })
+        body: JSON.stringify({ acao, usuario: usuarioLogado.usuario, data_hora: new Date() })
       });
     }
 
@@ -275,7 +274,7 @@
       await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ rifa_encerrada: false, ganhador_nome: null, ganhador_numero: null }) });
     }
 
-    // ========== EVENTOS DOS BOTÕES ==========
+    // Eventos
     document.getElementById('btnLogin').onclick = async () => {
       const username = document.getElementById('loginUsername').value.trim();
       const password = document.getElementById('loginPassword').value;
@@ -288,7 +287,7 @@
         usuarioLogado = user;
         document.getElementById('telaLogin').style.display = 'none';
         document.getElementById('painelAdmin').style.display = 'block';
-        document.getElementById('usuarioInfo').innerHTML = `✅ Logado como: <strong>${user.nome || user.username}</strong>`;
+        document.getElementById('usuarioInfo').innerHTML = `✅ Logado como: <strong>${user.nome || user.usuario}</strong>`;
         await registrarLog('Login realizado');
         await carregarNumeros();
         await carregarConfig();
@@ -351,8 +350,6 @@
       }
       try {
         const fileName = `${Date.now()}_${file.name}`;
-        const formData = new FormData();
-        formData.append('file', file);
         const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/brindes/${fileName}`, {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
