@@ -2,45 +2,39 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Rifa</title>
+  <title>Admin Rifa Online</title>
   <style>
     body { font-family: Arial; background: #9b59b6; padding: 20px; }
-    .container { max-width: 1200px; margin: auto; background: white; border-radius: 20px; padding: 20px; }
-    .grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
+    .container { max-width: 1000px; margin: auto; background: white; border-radius: 20px; padding: 20px; }
+    .numeros-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
     .numero { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 16px; font-weight: bold; cursor: pointer; }
-    .livre { background: #d2b4de; }
+    .livre { background: #d2b4de; color: #4a235a; }
     .vendido { background: #4a235a; color: white; cursor: not-allowed; }
-    .selecionado { background: #f1c40f; }
-    button, .btn { background: #8e44ad; color: white; border: none; padding: 10px 20px; border-radius: 40px; cursor: pointer; margin: 5px; }
-    input { padding: 10px; margin: 10px 0; width: 100%; max-width: 300px; }
-    .voltar { display: inline-block; margin-bottom: 20px; text-decoration: none; background: #f4ecf7; color: #4a235a; padding: 8px 16px; border-radius: 30px; }
+    .selecionado { background: #f1c40f; color: black; }
+    button { background: #8e44ad; color: white; border: none; padding: 10px 20px; border-radius: 40px; cursor: pointer; margin: 5px; }
+    input { padding: 10px; margin: 10px 0; width: 100%; }
+    .voltar { margin-bottom: 20px; display: inline-block; }
   </style>
 </head>
 <body>
 <div class="container">
   <a href="index.html" class="voltar">← Voltar</a>
   <h1>Admin Rifa Online</h1>
-  <div id="loginArea">
-    <h2>Login</h2>
-    <input type="text" id="loginUser" placeholder="Usuário">
-    <input type="password" id="loginPass" placeholder="Senha">
-    <button id="loginBtn">Entrar</button>
-    <div id="loginMsg"></div>
+
+  <div>
+    <label>Total de números (1-5000): </label>
+    <input type="number" id="totalNumeros" value="20" min="1" max="5000">
+    <button id="btnAtualizar">Atualizar rifa</button>
   </div>
-  <div id="adminArea" style="display:none;">
-    <div>
-      <label>Total de números (1-5000): </label>
-      <input type="number" id="totalNumeros" value="20" min="1" max="5000">
-      <button id="atualizarTotal">Atualizar rifa</button>
-    </div>
-    <div>
-      <input type="text" id="nomeComprador" placeholder="Nome do comprador">
-      <button id="venderBtn">Vender selecionados</button>
-      <button id="limparBtn">Limpar seleção</button>
-    </div>
-    <div id="numerosGrid" class="grid"></div>
-    <div id="msg"></div>
+  <div id="msgTotal"></div>
+
+  <div>
+    <input type="text" id="nomeComprador" placeholder="Nome do comprador">
+    <button id="btnVender">Vender selecionados</button>
+    <button id="btnLimpar">Limpar seleção</button>
   </div>
+  <div id="numerosGrid" class="numeros-grid"></div>
+  <div id="msgVenda"></div>
 </div>
 
 <script>
@@ -48,59 +42,43 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
   const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
 
-  async function api(endpoint, options = {}) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, { ...options, headers });
-    // Se for DELETE ou PATCH com resposta vazia, não tenta parsear JSON
+  // Função que não tenta parsear JSON quando não há conteúdo
+  async function req(endpoint, options = {}) {
+    const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+    const res = await fetch(url, { ...options, headers });
     if (res.status === 204) return null;
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   }
 
-  let numeros = [];
+  let numerosAtuais = [];
   let selecionados = new Set();
-  let usuario = null;
-
-  // Login
-  document.getElementById('loginBtn').onclick = async () => {
-    const user = document.getElementById('loginUser').value.trim();
-    const pass = document.getElementById('loginPass').value;
-    try {
-      const data = await api(`usuarios_admin?usuario=eq.${encodeURIComponent(user)}&senha=eq.${encodeURIComponent(pass)}`);
-      if (!data || data.length === 0) throw new Error('Usuário ou senha inválidos');
-      usuario = data[0];
-      document.getElementById('loginArea').style.display = 'none';
-      document.getElementById('adminArea').style.display = 'block';
-      carregarNumeros();
-    } catch(e) { document.getElementById('loginMsg').innerHTML = `<span style="color:red">${e.message}</span>`; }
-  };
 
   async function carregarNumeros() {
-    try {
-      const data = await api('numeros?order=numero.asc');
-      numeros = data || [];
-      renderizar();
-    } catch(e) { mostrarMsg('Erro ao carregar números: ' + e.message); }
+    const data = await req('numeros?order=numero.asc');
+    numerosAtuais = data || [];
+    renderizar();
   }
 
   function renderizar() {
     const grid = document.getElementById('numerosGrid');
     grid.innerHTML = '';
-    for (let n of numeros) {
+    for (let num of numerosAtuais) {
       const div = document.createElement('div');
       div.className = 'numero';
-      if (n.nome_comprador) {
+      if (num.nome_comprador) {
         div.classList.add('vendido');
-        div.title = `Vendido para ${n.nome_comprador}`;
-      } else if (selecionados.has(n.numero)) {
+        div.title = `Vendido: ${num.nome_comprador}`;
+      } else if (selecionados.has(num.numero)) {
         div.classList.add('selecionado');
       } else {
         div.classList.add('livre');
       }
-      div.textContent = n.numero;
-      if (!n.nome_comprador) {
+      div.textContent = num.numero;
+      if (!num.nome_comprador) {
         div.onclick = () => {
-          if (selecionados.has(n.numero)) selecionados.delete(n.numero);
-          else selecionados.add(n.numero);
+          if (selecionados.has(num.numero)) selecionados.delete(num.numero);
+          else selecionados.add(num.numero);
           renderizar();
         };
       }
@@ -109,56 +87,73 @@
   }
 
   async function atualizarTotal(novoTotal) {
-    try {
-      // Adicionar números faltantes
-      const existentes = numeros.map(n => n.numero);
-      for (let i = 1; i <= novoTotal; i++) {
-        if (!existentes.includes(i)) {
-          await api('numeros', { method: 'POST', body: JSON.stringify({ numero: i, nome_comprador: null }) });
-        }
+    // Buscar números atuais
+    const existentes = await req('numeros?order=numero.asc');
+    const numerosExistentes = existentes || [];
+
+    // 1. Remover números não vendidos acima do novo total
+    for (let num of numerosExistentes) {
+      if (num.numero > novoTotal && !num.nome_comprador) {
+        await req(`numeros?numero=eq.${num.numero}`, { method: 'DELETE' });
       }
-      // Remover números acima do novoTotal (somente não vendidos)
-      for (let n of numeros) {
-        if (n.numero > novoTotal && !n.nome_comprador) {
-          await api(`numeros?numero=eq.${n.numero}`, { method: 'DELETE' });
-        }
+    }
+
+    // 2. Obter novamente os números (após remoções)
+    const restantes = await req('numeros?order=numero.asc');
+    const numerosRestantes = restantes || [];
+    const maxExistente = numerosRestantes.length ? Math.max(...numerosRestantes.map(n => n.numero)) : 0;
+
+    // 3. Adicionar números faltantes até o novo total
+    if (novoTotal > maxExistente) {
+      for (let i = maxExistente + 1; i <= novoTotal; i++) {
+        await req('numeros', { method: 'POST', body: JSON.stringify({ numero: i, nome_comprador: null }) });
       }
-      // Atualizar config.total_numeros
-      await api('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ total_numeros: novoTotal }) });
-      await carregarNumeros();
-      mostrarMsg(`✅ Total atualizado para ${novoTotal} números.`);
-    } catch(e) { mostrarMsg('Erro: ' + e.message, true); }
+    }
+
+    // 4. Atualizar configuração
+    await req('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ total_numeros: novoTotal }) });
+
+    // 5. Recarregar grade
+    await carregarNumeros();
+    document.getElementById('msgTotal').innerText = `Total atualizado para ${novoTotal} números.`;
+    setTimeout(() => document.getElementById('msgTotal').innerText = '', 3000);
   }
 
   async function venderSelecionados() {
     const nome = document.getElementById('nomeComprador').value.trim();
-    if (!nome) return mostrarMsg('Digite o nome do comprador', true);
+    if (!nome) { alert('Digite o nome do comprador'); return; }
     const nums = Array.from(selecionados);
-    if (nums.length === 0) return mostrarMsg('Selecione pelo menos um número', true);
-    try {
-      for (let num of nums) {
-        await api(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nome, data_compra: new Date() }) });
-      }
-      selecionados.clear();
-      await carregarNumeros();
-      mostrarMsg(`✅ ${nums.length} números vendidos para ${nome}.`);
-      document.getElementById('nomeComprador').value = '';
-    } catch(e) { mostrarMsg('Erro ao vender: ' + e.message, true); }
+    if (nums.length === 0) { alert('Selecione ao menos um número'); return; }
+    for (let num of nums) {
+      await req(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nome, data_compra: new Date() }) });
+    }
+    selecionados.clear();
+    await carregarNumeros();
+    document.getElementById('msgVenda').innerText = `${nums.length} números vendidos para ${nome}.`;
+    setTimeout(() => document.getElementById('msgVenda').innerText = '', 3000);
   }
 
-  function mostrarMsg(msg, isError = false) {
-    const div = document.getElementById('msg');
-    div.innerHTML = `<span style="color:${isError ? 'red' : 'green'}">${msg}</span>`;
-    setTimeout(() => div.innerHTML = '', 3000);
-  }
-
-  document.getElementById('atualizarTotal').onclick = () => {
-    const total = parseInt(document.getElementById('totalNumeros').value);
-    if (total >= 1 && total <= 5000) atualizarTotal(total);
-    else mostrarMsg('Total inválido (1-5000)', true);
+  document.getElementById('btnAtualizar').onclick = async () => {
+    const novoTotal = parseInt(document.getElementById('totalNumeros').value);
+    if (novoTotal >= 1 && novoTotal <= 5000) {
+      await atualizarTotal(novoTotal);
+    } else {
+      alert('Total inválido');
+    }
   };
-  document.getElementById('venderBtn').onclick = venderSelecionados;
-  document.getElementById('limparBtn').onclick = () => { selecionados.clear(); renderizar(); };
+  document.getElementById('btnVender').onclick = venderSelecionados;
+  document.getElementById('btnLimpar').onclick = () => { selecionados.clear(); renderizar(); };
+
+  // Carregar total atual da config e preencher o campo
+  async function carregarTotalConfig() {
+    const config = await req('config?id=eq.1');
+    if (config && config[0] && config[0].total_numeros) {
+      document.getElementById('totalNumeros').value = config[0].total_numeros;
+    }
+  }
+
+  carregarTotalConfig();
+  carregarNumeros();
 </script>
 </body>
 </html>
