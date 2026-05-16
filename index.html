@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Rifa Online - 1000 números</title>
-  <!-- versão 20250516.03 - cache reset -->
+  <title>Rifa Online - Números dinâmicos</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -169,13 +168,12 @@
     <button id="meusNumerosBtn">🔍 Meus números</button>
     <button id="whatsappBtn">📱 Compartilhar</button>
   </div>
-  <h3>🎟️ Números disponíveis (1 a 1000)</h3>
+  <h3>🎟️ Números disponíveis <span id="totalNumerosSpan"></span></h3>
   <div class="numeros-grid" id="numerosGrid"></div>
   <div class="admin-link"><a href="admin.html">👑 Admin</a></div>
   <footer>Atualiza automática • Rifa online</footer>
 </div>
 
-<!-- Modal de busca -->
 <div id="modalBusca" class="modal">
   <div class="modal-content">
     <h3>🔍 Buscar meus números</h3>
@@ -187,12 +185,12 @@
 </div>
 
 <script>
-  // CONFIGURAÇÃO DO SUPABASE
   const SUPABASE_URL = 'https://wrofweogvhgkocevlvdf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
 
   let configAtual = null;
   let numerosAtuais = [];
+  let totalNumeros = 1000;
 
   const headers = {
     'apikey': SUPABASE_KEY,
@@ -209,14 +207,19 @@
   async function carregarConfig() {
     try {
       const data = await fetchSupabase('config?id=eq.1');
-      configAtual = data?.[0] || null;
+      if (data && data[0]) {
+        configAtual = data[0];
+        totalNumeros = configAtual.total_numeros || 1000;
+        document.getElementById('totalNumerosSpan').innerText = `(1 a ${totalNumeros})`;
+      }
     } catch(e) { console.error(e); }
   }
 
   async function carregarNumeros() {
     try {
       const data = await fetchSupabase('numeros?order=numero.asc');
-      numerosAtuais = data || [];
+      // Filtrar apenas números até o total definido
+      numerosAtuais = (data || []).filter(n => n.numero <= totalNumeros);
       atualizarInterface();
     } catch(e) { 
       document.getElementById('numerosGrid').innerHTML = '<p style="color:red">Erro ao carregar números</p>';
@@ -237,12 +240,13 @@
           <br><br>
           <button id="copiarPixBtn">📋 Copiar chave PIX</button>
         `;
-        document.getElementById('copiarPixBtn')?.addEventListener('click', () => {
+        const copiarBtn = document.getElementById('copiarPixBtn');
+        if (copiarBtn) copiarBtn.onclick = () => {
           const input = document.getElementById('chavePixInput');
           input.select();
           document.execCommand('copy');
           alert('✅ Chave PIX copiada!');
-        });
+        };
       } else pixDiv.innerHTML = '';
       document.getElementById('textoDiv').innerHTML = configAtual.texto_explicativo || '';
       const contadorDiv = document.getElementById('contadorDiv');
@@ -291,7 +295,7 @@
     contadorDiv.innerHTML = `⏰ SORTEIO EM:<br>${dias}d ${horas}h ${minutos}m ${segundos}s`;
   }
 
-  // BUSCA PARCIAL (usando ilike)
+  // Busca parcial
   document.getElementById('meusNumerosBtn').onclick = () => document.getElementById('modalBusca').style.display = 'flex';
   document.getElementById('fecharBusca').onclick = () => {
     document.getElementById('modalBusca').style.display = 'none';
@@ -327,8 +331,8 @@
     await carregarConfig();
     await carregarNumeros();
     setInterval(async () => {
-      await carregarNumeros();
       await carregarConfig();
+      await carregarNumeros();
     }, 8000);
   }
   iniciar();
