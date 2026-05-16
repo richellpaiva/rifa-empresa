@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Rifa Lilás - 1000 números</title>
+  <title>Rifa Online - 1000 números</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -83,14 +83,12 @@
       transition: 0.2s;
       font-size: 15px;
     }
-    /* Disponível: lilás claro */
     .disponivel {
       background: #d2b4de;
       color: #4a235a;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
     .disponivel:hover { background: #c39bd3; transform: scale(1.05); }
-    /* Vendido: lilás escuro (bem escuro) */
     .ocupado {
       background: #4a235a;
       color: #f5eef8;
@@ -161,7 +159,7 @@
 </head>
 <body>
 <div class="container" id="app">
-  <h1 id="titulo">💜 Rifa Lilás</h1>
+  <h1 id="titulo">💜 Rifa Online</h1>
   <div class="foto-brinde" id="fotoDiv"></div>
   <div class="pix-area" id="pixDiv"></div>
   <div class="contador" id="contadorDiv">⏳ Carregando...</div>
@@ -180,7 +178,7 @@
 <div id="modalBusca" class="modal">
   <div class="modal-content">
     <h3>🔍 Buscar meus números</h3>
-    <input type="text" id="buscaNome" placeholder="Digite seu nome completo">
+    <input type="text" id="buscaNome" placeholder="Digite parte do seu nome">
     <button id="confirmarBusca">Buscar</button>
     <button id="fecharBusca">Fechar</button>
     <div id="resultadoBusca" style="margin-top: 15px;"></div>
@@ -194,7 +192,6 @@
   let configAtual = null;
   let numerosAtuais = [];
 
-  // headers
   const headers = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -226,12 +223,10 @@
 
   function atualizarInterface() {
     if (configAtual) {
-      document.getElementById('titulo').textContent = configAtual.titulo || '💜 Rifa Lilás';
-      // Foto
+      document.getElementById('titulo').textContent = configAtual.titulo || '💜 Rifa Online';
       const fotoDiv = document.getElementById('fotoDiv');
       if (configAtual.foto_url) fotoDiv.innerHTML = `<img src="${configAtual.foto_url}" style="max-width:100%; max-height:250px; border-radius:20px;">`;
       else fotoDiv.innerHTML = '';
-      // PIX
       const pixDiv = document.getElementById('pixDiv');
       if (configAtual.chave_pix) {
         pixDiv.innerHTML = `
@@ -247,9 +242,7 @@
           alert('✅ Chave PIX copiada!');
         });
       } else pixDiv.innerHTML = '';
-      // Texto explicativo
       document.getElementById('textoDiv').innerHTML = configAtual.texto_explicativo || '';
-      // Contador ou ganhador
       const contadorDiv = document.getElementById('contadorDiv');
       if (configAtual.ganhador_nome) {
         contadorDiv.innerHTML = `🎉 PARABÉNS, ${configAtual.ganhador_nome}! 🎉<br>Número: ${configAtual.ganhador_numero}`;
@@ -264,7 +257,6 @@
         contadorDiv.innerHTML = '📅 Data do sorteio não definida';
       }
     }
-    // Renderizar números
     const grid = document.getElementById('numerosGrid');
     grid.innerHTML = '';
     for (const num of numerosAtuais) {
@@ -297,29 +289,35 @@
     contadorDiv.innerHTML = `⏰ SORTEIO EM:<br>${dias}d ${horas}h ${minutos}m ${segundos}s`;
   }
 
-  // Busca por nome
+  // BUSCA PARCIAL (usando ilike)
   document.getElementById('meusNumerosBtn').onclick = () => document.getElementById('modalBusca').style.display = 'flex';
   document.getElementById('fecharBusca').onclick = () => {
     document.getElementById('modalBusca').style.display = 'none';
     document.getElementById('resultadoBusca').innerHTML = '';
+    document.getElementById('buscaNome').value = '';
   };
   document.getElementById('confirmarBusca').onclick = async () => {
     const nome = document.getElementById('buscaNome').value.trim();
-    if (!nome) { alert('Digite seu nome'); return; }
+    if (!nome) { alert('Digite parte do seu nome'); return; }
     try {
-      const data = await fetchSupabase(`numeros?select=numero&nome_comprador=eq.${encodeURIComponent(nome)}`);
+      // Busca com ilike (case insensitive) - ex: %Riche%
+      const endpoint = `numeros?select=numero&nome_comprador=ilike.%25${encodeURIComponent(nome)}%25`;
+      const data = await fetchSupabase(endpoint);
       const resultadoDiv = document.getElementById('resultadoBusca');
-      if (!data || data.length === 0) resultadoDiv.innerHTML = '❌ Nenhum número encontrado.';
-      else {
+      if (!data || data.length === 0) {
+        resultadoDiv.innerHTML = '❌ Nenhum número encontrado com esse nome.';
+      } else {
         const nums = data.map(n => n.numero).sort((a,b)=>a-b);
         resultadoDiv.innerHTML = `✅ Seus números: ${nums.join(', ')}`;
       }
-    } catch(e) { resultadoDiv.innerHTML = 'Erro na busca'; }
+    } catch(e) {
+      resultadoDiv.innerHTML = 'Erro na busca';
+      console.error(e);
+    }
   };
 
-  // WhatsApp
   document.getElementById('whatsappBtn').onclick = () => {
-    let texto = configAtual?.texto_compartilhamento || 'Participe da rifa! 🎟️';
+    let texto = configAtual?.texto_compartilhamento || 'Participe da rifa online! 🎟️';
     texto += `\n\nLink: ${window.location.href}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
   };
