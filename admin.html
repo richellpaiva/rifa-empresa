@@ -3,330 +3,471 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Rifa</title>
+  <title>Admin - Rifa Online</title>
   <style>
-    * { box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
-      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       padding: 20px;
-      background: #1a1a2e;
     }
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
-      background: white;
-      border-radius: 10px;
-      padding: 20px;
     }
-    h1, h2 { color: #1a1a2e; }
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    h1 { color: #333; margin-bottom: 20px; }
+    h2 { color: #555; margin: 15px 0 10px 0; font-size: 18px; }
     input, textarea, select {
       width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
     }
     button {
-      background: #0088cc;
+      background: #667eea;
       color: white;
       border: none;
-      padding: 10px 20px;
-      margin: 5px;
-      border-radius: 5px;
+      padding: 12px 24px;
+      margin: 8px 5px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    button:hover { background: #5a67d8; transform: translateY(-2px); }
+    .btn-danger { background: #e53e3e; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-success { background: #38a169; }
+    .btn-success:hover { background: #2f855a; }
+    .btn-warning { background: #ed8936; }
+    .mensagem {
+      padding: 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+      display: none;
+    }
+    .mensagem.sucesso { background: #c6f6d5; color: #22543d; display: block; }
+    .mensagem.erro { background: #fed7d7; color: #742a2a; display: block; }
+    .login-box {
+      text-align: center;
+      max-width: 400px;
+      margin: 100px auto;
+    }
+    .grid-numeros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 15px;
+    }
+    .numero-item {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-weight: bold;
       cursor: pointer;
     }
-    button:hover { background: #006699; }
-    .btn-danger { background: #dc3545; }
-    .btn-danger:hover { background: #c82333; }
-    .btn-success { background: #28a745; }
-    .btn-success:hover { background: #218838; }
-    .card {
-      background: #f8f9fa;
-      padding: 15px;
-      margin: 15px 0;
-      border-radius: 8px;
-      border-left: 4px solid #0088cc;
-    }
-    .login-area {
-      text-align: center;
-      padding: 40px;
-    }
-    .status {
-      background: #e9ecef;
-      padding: 10px;
-      border-radius: 5px;
-      margin: 10px 0;
-    }
+    .numero-livre { background: #48bb78; color: white; }
+    .numero-vendido { background: #a0aec0; color: white; }
+    .info { background: #e2e8f0; padding: 15px; border-radius: 10px; margin: 15px 0; }
   </style>
 </head>
 <body>
-<div class="container" id="app">
-  <div id="loginPanel">
-    <h1>🔐 Login Admin</h1>
-    <div class="login-area">
-      <input type="email" id="loginEmail" placeholder="Email do admin">
-      <input type="password" id="loginSenha" placeholder="Senha">
-      <button id="loginBtn">Entrar</button>
-      <div id="loginMsg" style="color:red; margin-top:10px;"></div>
-    </div>
+<div class="container">
+
+  <!-- TELA DE LOGIN -->
+  <div id="telaLogin" class="card login-box">
+    <h1>🔐 Login Administrativo</h1>
+    <input type="text" id="loginUsername" placeholder="Usuário" autocomplete="off">
+    <input type="password" id="loginPassword" placeholder="Senha">
+    <button id="btnLogin" style="width: 100%;">Entrar</button>
+    <div id="loginMensagem" class="mensagem"></div>
   </div>
 
-  <div id="adminPanel" style="display:none;">
-    <h1>👑 Painel Administrativo</h1>
+  <!-- PAINEL ADMIN (escondido inicialmente) -->
+  <div id="painelAdmin" style="display: none;">
     
+    <!-- Cabeçalho -->
     <div class="card">
-      <h3>➕ Adicionar comprador</h3>
-      <input type="number" id="numeroCompra" placeholder="Número (1 a 100)">
-      <input type="text" id="nomeCompra" placeholder="Nome completo">
-      <button id="adicionarCompradorBtn">Adicionar / Vender</button>
-      <div id="compraMsg"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>👑 Painel Administrativo</h1>
+        <button id="btnLogout" class="btn-danger">Sair</button>
+      </div>
+      <div id="usuarioInfo" class="info" style="margin-top: 10px;"></div>
     </div>
 
+    <!-- Vender número -->
     <div class="card">
-      <h3>⚙️ Configurações da Rifa</h3>
+      <h2>➕ Vender número</h2>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="number" id="venderNumero" placeholder="Número (1-100)" style="flex:1; min-width:120px;">
+        <input type="text" id="venderNome" placeholder="Nome completo" style="flex:2; min-width:200px;">
+        <button id="btnVender">Vender</button>
+      </div>
+      <div id="venderMensagem" class="mensagem"></div>
+      
+      <h2 style="margin-top: 20px;">📊 Números da Rifa</h2>
+      <div id="listaNumeros" class="grid-numeros"></div>
+    </div>
+
+    <!-- Configurações -->
+    <div class="card">
+      <h2>⚙️ Configurações da Rifa</h2>
       <input type="text" id="configTitulo" placeholder="Título da rifa">
       <input type="text" id="configChavePix" placeholder="Chave PIX">
-      <textarea id="configTextoExplicativo" rows="3" placeholder="Texto explicativo"></textarea>
+      <textarea id="configTexto" rows="3" placeholder="Texto explicativo"></textarea>
       <input type="datetime-local" id="configDataSorteio">
-      <input type="text" id="configTextoWhatsapp" placeholder="Texto para compartilhar no WhatsApp">
-      <button id="salvarConfigBtn">💾 Salvar configurações</button>
+      <input type="text" id="configWhatsapp" placeholder="Texto do WhatsApp">
+      <button id="btnSalvarConfig">💾 Salvar configurações</button>
+      <div id="configMensagem" class="mensagem"></div>
     </div>
 
+    <!-- Foto do brinde -->
     <div class="card">
-      <h3>🖼️ Foto do brinde</h3>
-      <input type="file" id="uploadFoto" accept="image/*">
-      <button id="uploadFotoBtn">📤 Enviar foto</button>
-      <div id="fotoMsg"></div>
+      <h2>🖼️ Foto do brinde</h2>
+      <input type="file" id="fotoArquivo" accept="image/*">
+      <button id="btnEnviarFoto">📤 Enviar foto</button>
+      <div id="fotoPreview" style="margin-top: 15px;"></div>
+      <div id="fotoMensagem" class="mensagem"></div>
     </div>
 
+    <!-- Definir ganhador -->
     <div class="card">
-      <h3>🏆 Definir ganhador</h3>
-      <input type="number" id="ganhadorNumero" placeholder="Número sorteado">
-      <input type="text" id="ganhadorNome" placeholder="Nome do ganhador">
-      <button id="definirGanhadorBtn">🎉 Definir ganhador</button>
+      <h2>🏆 Definir ganhador</h2>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="number" id="ganhadorNumero" placeholder="Número" style="flex:1;">
+        <input type="text" id="ganhadorNome" placeholder="Nome do ganhador" style="flex:2;">
+        <button id="btnDefinirGanhador" class="btn-success">🎉 Definir ganhador</button>
+      </div>
+      <div id="ganhadorMensagem" class="mensagem"></div>
     </div>
 
+    <!-- Controles da rifa -->
     <div class="card">
-      <h3>🔒 Encerrar rifa</h3>
-      <button id="encerrarRifaBtn" class="btn-danger">🚫 Encerrar rifa</button>
-      <button id="reabrirRifaBtn" class="btn-success">🔄 Reabrir rifa</button>
+      <h2>🔒 Controle da Rifa</h2>
+      <button id="btnEncerrar" class="btn-danger">🚫 Encerrar rifa</button>
+      <button id="btnReabrir" class="btn-warning">🔄 Reabrir rifa</button>
+      <button id="btnPDF" class="btn-success">📑 Gerar PDF</button>
     </div>
 
+    <!-- Logs -->
     <div class="card">
-      <h3>📄 Gerar relatório</h3>
-      <button id="gerarPDFBtn">📑 Gerar PDF dos compradores</button>
+      <h2>📝 Histórico de ações</h2>
+      <div id="logsLista" style="max-height: 250px; overflow-y: auto; font-size: 13px;"></div>
     </div>
 
-    <div class="card">
-      <h3>📝 Últimos logs</h3>
-      <div id="logsArea" style="font-size:12px; max-height:200px; overflow-y:auto;"></div>
-    </div>
-
-    <button id="logoutBtn" class="btn-danger">🚪 Sair</button>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  // CONFIGURAÇÃO
   const SUPABASE_URL = 'https://wrofweogvhgkocevlvdf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
   
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  
   let usuarioLogado = null;
 
-  async function fazerLogin(email, senha) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    if (error) throw error;
-    return data.user;
+  // ========== FUNÇÕES ==========
+  function mostrarMensagem(elementoId, texto, tipo) {
+    const div = document.getElementById(elementoId);
+    div.textContent = texto;
+    div.className = `mensagem ${tipo}`;
+    setTimeout(() => {
+      div.className = 'mensagem';
+      div.textContent = '';
+    }, 3000);
+  }
+
+  async function fazerLogin(username, password) {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('username', username)
+      .eq('password', password);
+    
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) throw new Error('Usuário ou senha incorretos');
+    return data[0];
   }
 
   async function registrarLog(acao) {
-    await supabase.from('logs').insert({ acao: acao, usuario: usuarioLogado?.email || 'admin' });
+    if (!usuarioLogado) return;
+    await supabase.from('logs').insert({
+      acao: acao,
+      usuario: usuarioLogado.username,
+      data_hora: new Date()
+    });
   }
 
   async function carregarLogs() {
-    const { data } = await supabase.from('logs').select('*').order('data_hora', { ascending: false }).limit(10);
+    const { data } = await supabase
+      .from('logs')
+      .select('*')
+      .order('data_hora', { ascending: false })
+      .limit(15);
+    
+    const logsDiv = document.getElementById('logsLista');
+    if (data && data.length > 0) {
+      logsDiv.innerHTML = data.map(log => 
+        `📌 ${new Date(log.data_hora).toLocaleString()} - ${log.acao} (${log.usuario})`
+      ).join('<br>');
+    } else {
+      logsDiv.innerHTML = 'Nenhum log registrado.';
+    }
+  }
+
+  async function carregarNumeros() {
+    const { data } = await supabase
+      .from('numeros')
+      .select('*')
+      .order('numero', { ascending: true });
+    
+    const grid = document.getElementById('listaNumeros');
     if (data) {
-      const logsDiv = document.getElementById('logsArea');
-      logsDiv.innerHTML = data.map(l => `📌 ${new Date(l.data_hora).toLocaleString()} - ${l.acao} (${l.usuario})`).join('<br>');
+      grid.innerHTML = data.map(num => `
+        <div class="numero-item ${num.nome_comprador ? 'numero-vendido' : 'numero-livre'}"
+             title="${num.nome_comprador ? `Vendido para: ${num.nome_comprador}` : 'Disponível'}">
+          ${num.numero}
+        </div>
+      `).join('');
     }
   }
 
-  async function adicionarComprador(numero, nome) {
-    const { error } = await supabase.from('numeros').update({ nome_comprador: nome, data_compra: new Date() }).eq('numero', numero);
-    if (error) throw error;
-    await registrarLog(`Vendeu número ${numero} para ${nome}`);
-  }
-
-  async function salvarConfig(titulo, chavePix, textoExplicativo, dataSorteio, textoWhatsapp) {
-    const { error } = await supabase.from('config').update({
-      titulo, chave_pix: chavePix, texto_explicativo: textoExplicativo,
-      data_sorteio: dataSorteio, texto_compartilhamento: textoWhatsapp
-    }).eq('id', 1);
-    if (error) throw error;
-    await registrarLog('Atualizou configurações');
-  }
-
-  async function uploadFoto(file) {
-    const fileName = `${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from('brindes').upload(fileName, file);
-    if (uploadError) throw uploadError;
-    const { data: { publicUrl } } = supabase.storage.from('brindes').getPublicUrl(fileName);
-    const { error: updateError } = await supabase.from('config').update({ foto_url: publicUrl }).eq('id', 1);
-    if (updateError) throw updateError;
-    await registrarLog('Atualizou foto do brinde');
-    return publicUrl;
-  }
-
-  async function definirGanhador(numero, nome) {
-    const { error } = await supabase.from('config').update({ ganhador_nome: nome, ganhador_numero: numero, rifa_encerrada: true }).eq('id', 1);
-    if (error) throw error;
-    await registrarLog(`Definiu ganhador: ${nome} - Número ${numero}`);
-  }
-
-  async function encerrarRifa() {
-    const { error } = await supabase.from('config').update({ rifa_encerrada: true }).eq('id', 1);
-    if (error) throw error;
-    await registrarLog('Encerrou a rifa');
-  }
-
-  async function reabrirRifa() {
-    const { error } = await supabase.from('config').update({ rifa_encerrada: false, ganhador_nome: null, ganhador_numero: null }).eq('id', 1);
-    if (error) throw error;
-    await registrarLog('Reabriu a rifa');
-  }
-
-  async function gerarPDF() {
-    const { data } = await supabase.from('numeros').select('numero, nome_comprador').not('nome_comprador', 'is', null);
-    if (!data || data.length === 0) {
-      alert('Nenhum comprador registrado');
-      return;
-    }
-    let html = '<html><head><meta charset="UTF-8"><title>Compradores</title></head><body>';
-    html += '<h1>Lista de Compradores</h1><ul>';
-    for (const c of data) {
-      html += `<li>Número ${c.numero} - ${c.nome_comprador}</li>`;
-    }
-    html += '</ul></body></html>';
-    const win = window.open();
-    win.document.write(html);
-    win.document.close();
-    win.print();
-    await registrarLog('Gerou relatório PDF');
-  }
-
-  // Eventos
-  document.getElementById('loginBtn').onclick = async () => {
-    const email = document.getElementById('loginEmail').value;
-    const senha = document.getElementById('loginSenha').value;
-    try {
-      const user = await fazerLogin(email, senha);
-      usuarioLogado = user;
-      document.getElementById('loginPanel').style.display = 'none';
-      document.getElementById('adminPanel').style.display = 'block';
-      await registrarLog('Login realizado');
-      carregarLogs();
-    } catch(e) {
-      document.getElementById('loginMsg').innerText = 'Erro: ' + e.message;
-    }
-  };
-
-  document.getElementById('logoutBtn').onclick = async () => {
-    await registrarLog('Logout');
-    await supabase.auth.signOut();
-    location.reload();
-  };
-
-  document.getElementById('adicionarCompradorBtn').onclick = async () => {
-    const numero = parseInt(document.getElementById('numeroCompra').value);
-    const nome = document.getElementById('nomeCompra').value;
-    if (!numero || !nome) { alert('Preencha número e nome'); return; }
-    try {
-      await adicionarComprador(numero, nome);
-      document.getElementById('compraMsg').innerHTML = '<span style="color:green">✅ Venda registrada!</span>';
-      document.getElementById('numeroCompra').value = '';
-      document.getElementById('nomeCompra').value = '';
-      carregarLogs();
-    } catch(e) {
-      document.getElementById('compraMsg').innerHTML = '<span style="color:red">❌ ' + e.message + '</span>';
-    }
-  };
-
-  document.getElementById('salvarConfigBtn').onclick = async () => {
-    const titulo = document.getElementById('configTitulo').value;
-    const chavePix = document.getElementById('configChavePix').value;
-    const textoExplicativo = document.getElementById('configTextoExplicativo').value;
-    const dataSorteio = document.getElementById('configDataSorteio').value;
-    const textoWhatsapp = document.getElementById('configTextoWhatsapp').value;
-    try {
-      await salvarConfig(titulo, chavePix, textoExplicativo, dataSorteio, textoWhatsapp);
-      alert('Configurações salvas!');
-      carregarLogs();
-    } catch(e) { alert('Erro: ' + e.message); }
-  };
-
-  document.getElementById('uploadFotoBtn').onclick = async () => {
-    const file = document.getElementById('uploadFoto').files[0];
-    if (!file) { alert('Selecione uma foto'); return; }
-    try {
-      const url = await uploadFoto(file);
-      document.getElementById('fotoMsg').innerHTML = `<span style="color:green">✅ Foto enviada!</span><br><img src="${url}" style="max-width:100px">`;
-      carregarLogs();
-    } catch(e) { document.getElementById('fotoMsg').innerHTML = '<span style="color:red">❌ ' + e.message + '</span>'; }
-  };
-
-  document.getElementById('definirGanhadorBtn').onclick = async () => {
-    const numero = parseInt(document.getElementById('ganhadorNumero').value);
-    const nome = document.getElementById('ganhadorNome').value;
-    if (!numero || !nome) { alert('Preencha número e nome do ganhador'); return; }
-    if (confirm(`Definir ${nome} como ganhador do número ${numero}?`)) {
-      await definirGanhador(numero, nome);
-      alert('Ganhador definido!');
-      carregarLogs();
-    }
-  };
-
-  document.getElementById('encerrarRifaBtn').onclick = async () => {
-    if (confirm('Encerrar a rifa? Não será possível comprar mais números.')) {
-      await encerrarRifa();
-      alert('Rifa encerrada!');
-      carregarLogs();
-    }
-  };
-
-  document.getElementById('reabrirRifaBtn').onclick = async () => {
-    if (confirm('Reabrir a rifa? O ganhador será removido.')) {
-      await reabrirRifa();
-      alert('Rifa reaberta!');
-      carregarLogs();
-    }
-  };
-
-  document.getElementById('gerarPDFBtn').onclick = () => gerarPDF();
-
-  // Carregar config atual para preencher os campos
-  async function carregarConfigAdmin() {
+  async function carregarConfig() {
     const { data } = await supabase.from('config').select('*').eq('id', 1);
     if (data && data[0]) {
       const c = data[0];
       document.getElementById('configTitulo').value = c.titulo || '';
       document.getElementById('configChavePix').value = c.chave_pix || '';
-      document.getElementById('configTextoExplicativo').value = c.texto_explicativo || '';
-      if (c.data_sorteio) document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0,16);
-      document.getElementById('configTextoWhatsapp').value = c.texto_compartilhamento || '';
+      document.getElementById('configTexto').value = c.texto_explicativo || '';
+      document.getElementById('configWhatsapp').value = c.texto_compartilhamento || '';
+      if (c.data_sorteio) {
+        document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0, 16);
+      }
+      if (c.foto_url) {
+        document.getElementById('fotoPreview').innerHTML = `<img src="${c.foto_url}" style="max-width: 200px; border-radius: 10px;">`;
+      }
     }
   }
-  
-  supabase.auth.getSession().then(({ data }) => {
-    if (data.session) {
-      usuarioLogado = data.session.user;
-      document.getElementById('loginPanel').style.display = 'none';
-      document.getElementById('adminPanel').style.display = 'block';
-      carregarConfigAdmin();
-      carregarLogs();
+
+  // ========== EVENTOS ==========
+  document.getElementById('btnLogin').onclick = async () => {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!username || !password) {
+      mostrarMensagem('loginMensagem', 'Preencha usuário e senha', 'erro');
+      return;
     }
-  });
+    
+    try {
+      const user = await fazerLogin(username, password);
+      usuarioLogado = user;
+      
+      document.getElementById('telaLogin').style.display = 'none';
+      document.getElementById('painelAdmin').style.display = 'block';
+      document.getElementById('usuarioInfo').innerHTML = `✅ Logado como: <strong>${user.nome}</strong>`;
+      
+      await registrarLog('Login realizado');
+      await carregarNumeros();
+      await carregarConfig();
+      await carregarLogs();
+      
+    } catch(e) {
+      mostrarMensagem('loginMensagem', e.message, 'erro');
+    }
+  };
+
+  document.getElementById('btnLogout').onclick = async () => {
+    await registrarLog('Logout');
+    usuarioLogado = null;
+    document.getElementById('telaLogin').style.display = 'block';
+    document.getElementById('painelAdmin').style.display = 'none';
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+  };
+
+  document.getElementById('btnVender').onclick = async () => {
+    const numero = parseInt(document.getElementById('venderNumero').value);
+    const nome = document.getElementById('venderNome').value.trim();
+    
+    if (!numero || !nome) {
+      mostrarMensagem('venderMensagem', 'Preencha número e nome', 'erro');
+      return;
+    }
+    if (numero < 1 || numero > 100) {
+      mostrarMensagem('venderMensagem', 'Número inválido (1-100)', 'erro');
+      return;
+    }
+    
+    const { data: verificar } = await supabase
+      .from('numeros')
+      .select('nome_comprador')
+      .eq('numero', numero);
+    
+    if (verificar && verificar[0] && verificar[0].nome_comprador) {
+      mostrarMensagem('venderMensagem', `Número ${numero} já está vendido!`, 'erro');
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('numeros')
+      .update({ nome_comprador: nome, data_compra: new Date() })
+      .eq('numero', numero);
+    
+    if (error) {
+      mostrarMensagem('venderMensagem', 'Erro ao vender', 'erro');
+    } else {
+      mostrarMensagem('venderMensagem', `✅ Número ${numero} vendido para ${nome}!`, 'sucesso');
+      document.getElementById('venderNumero').value = '';
+      document.getElementById('venderNome').value = '';
+      await registrarLog(`Vendeu número ${numero} para ${nome}`);
+      await carregarNumeros();
+      await carregarLogs();
+    }
+  };
+
+  document.getElementById('btnSalvarConfig').onclick = async () => {
+    const titulo = document.getElementById('configTitulo').value;
+    const chavePix = document.getElementById('configChavePix').value;
+    const texto = document.getElementById('configTexto').value;
+    const dataSorteio = document.getElementById('configDataSorteio').value;
+    const whatsapp = document.getElementById('configWhatsapp').value;
+    
+    const { error } = await supabase
+      .from('config')
+      .update({
+        titulo, chave_pix: chavePix, texto_explicativo: texto,
+        data_sorteio: dataSorteio || null, texto_compartilhamento: whatsapp
+      })
+      .eq('id', 1);
+    
+    if (error) {
+      mostrarMensagem('configMensagem', 'Erro ao salvar', 'erro');
+    } else {
+      mostrarMensagem('configMensagem', '✅ Configurações salvas!', 'sucesso');
+      await registrarLog('Atualizou configurações');
+      await carregarLogs();
+    }
+  };
+
+  document.getElementById('btnEnviarFoto').onclick = async () => {
+    const file = document.getElementById('fotoArquivo').files[0];
+    if (!file) {
+      mostrarMensagem('fotoMensagem', 'Selecione uma foto', 'erro');
+      return;
+    }
+    
+    const fileName = `${Date.now()}_${file.name}`;
+    const { error: uploadError } = await supabase.storage.from('brindes').upload(fileName, file);
+    if (uploadError) {
+      mostrarMensagem('fotoMensagem', 'Erro no upload', 'erro');
+      return;
+    }
+    
+    const { data: { publicUrl } } = supabase.storage.from('brindes').getPublicUrl(fileName);
+    const { error: updateError } = await supabase.from('config').update({ foto_url: publicUrl }).eq('id', 1);
+    
+    if (updateError) {
+      mostrarMensagem('fotoMensagem', 'Erro ao salvar URL', 'erro');
+    } else {
+      mostrarMensagem('fotoMensagem', '✅ Foto enviada!', 'sucesso');
+      document.getElementById('fotoPreview').innerHTML = `<img src="${publicUrl}" style="max-width: 200px; border-radius: 10px;">`;
+      await registrarLog('Atualizou foto do brinde');
+      await carregarLogs();
+    }
+  };
+
+  document.getElementById('btnDefinirGanhador').onclick = async () => {
+    const numero = parseInt(document.getElementById('ganhadorNumero').value);
+    const nome = document.getElementById('ganhadorNome').value.trim();
+    
+    if (!numero || !nome) {
+      mostrarMensagem('ganhadorMensagem', 'Preencha número e nome', 'erro');
+      return;
+    }
+    
+    if (confirm(`Definir ${nome} como ganhador do número ${numero}?`)) {
+      const { error } = await supabase
+        .from('config')
+        .update({ ganhador_nome: nome, ganhador_numero: numero, rifa_encerrada: true })
+        .eq('id', 1);
+      
+      if (error) {
+        mostrarMensagem('ganhadorMensagem', 'Erro ao definir ganhador', 'erro');
+      } else {
+        mostrarMensagem('ganhadorMensagem', `✅ Ganhador definido: ${nome} (Nº ${numero})`, 'sucesso');
+        await registrarLog(`Definiu ganhador: ${nome} - Número ${numero}`);
+        await carregarLogs();
+      }
+    }
+  };
+
+  document.getElementById('btnEncerrar').onclick = async () => {
+    if (confirm('Encerrar a rifa?')) {
+      const { error } = await supabase.from('config').update({ rifa_encerrada: true }).eq('id', 1);
+      if (!error) {
+        await registrarLog('Encerrou a rifa');
+        alert('✅ Rifa encerrada!');
+        await carregarLogs();
+      }
+    }
+  };
+
+  document.getElementById('btnReabrir').onclick = async () => {
+    if (confirm('Reabrir a rifa?')) {
+      const { error } = await supabase
+        .from('config')
+        .update({ rifa_encerrada: false, ganhador_nome: null, ganhador_numero: null })
+        .eq('id', 1);
+      if (!error) {
+        await registrarLog('Reabriu a rifa');
+        alert('✅ Rifa reaberta!');
+        await carregarLogs();
+      }
+    }
+  };
+
+  document.getElementById('btnPDF').onclick = async () => {
+    const { data } = await supabase
+      .from('numeros')
+      .select('numero, nome_comprador')
+      .not('nome_comprador', 'is', null);
+    
+    if (!data || data.length === 0) {
+      alert('Nenhum comprador registrado');
+      return;
+    }
+    
+    let html = '<html><head><meta charset="UTF-8"><title>Compradores</title>';
+    html += '<style>body{font-family:Arial;} li{margin:5px 0;}</style></head><body>';
+    html += '<h1>Lista de Compradores</h1><ul>';
+    for (const c of data) {
+      html += `<li>Número ${c.numero} - ${c.nome_comprador}</li>`;
+    }
+    html += '</ul></body></html>';
+    
+    const win = window.open();
+    win.document.write(html);
+    win.document.close();
+    win.print();
+    await registrarLog('Gerou relatório PDF');
+  };
+
 </script>
 </body>
 </html>
