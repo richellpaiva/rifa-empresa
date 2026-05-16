@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rifa Azul</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Rifa Online</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -36,8 +36,9 @@
       border-radius: 40px;
       cursor: pointer;
       margin: 5px;
+      transition: 0.3s;
     }
-    button:hover { background: #0d47a1; }
+    button:hover { background: #0d47a1; transform: scale(1.02); }
     .contador {
       text-align: center;
       font-size: 26px;
@@ -77,6 +78,37 @@
       margin: 20px 0;
       word-wrap: break-word;
     }
+    .botoes-acao {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .admin-link { text-align: center; margin-top: 30px; }
+    .btn-admin {
+      background: #0d47a1;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      font-size: 16px;
+      border-radius: 40px;
+      cursor: pointer;
+      margin: 5px;
+      transition: 0.3s;
+    }
+    .btn-admin:hover { background: #1565c0; transform: scale(1.02); }
+    .ganhador {
+      background: gold;
+      color: #0d47a1;
+      text-align: center;
+      padding: 20px;
+      border-radius: 30px;
+      margin: 20px 0;
+      font-size: 22px;
+      font-weight: bold;
+    }
+    footer { text-align: center; margin-top: 20px; font-size: 12px; color: #0d47a1; }
     .modal {
       display: none;
       position: fixed;
@@ -97,18 +129,22 @@
       width: 400px;
       text-align: center;
     }
-    .ganhador-screen {
-      text-align: center;
-      background: gold;
-      padding: 30px;
-      border-radius: 30px;
-      margin: 20px 0;
+    .modal-content input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 40px;
+      border: 1px solid #90caf9;
+    }
+    @media (max-width: 700px) {
+      .numero { width: 48px; height: 48px; font-size: 12px; }
+      .contador { font-size: 18px; }
     }
   </style>
 </head>
 <body>
 <div class="container" id="app">
-  <h1 id="titulo">💙 Rifa Azul</h1>
+  <h1 id="titulo">💙 Rifa Online</h1>
   <div class="brinde-area" id="brindeDiv"></div>
   <div class="pix-area" id="pixDiv"></div>
   <div class="contador" id="contadorDiv">⏳ Carregando...</div>
@@ -121,8 +157,10 @@
     <h3>🎟️ Números disponíveis (<span id="totalNumerosSpan"></span> disponíveis de <span id="totalConfigSpan"></span>)</h3>
     <div class="numeros-grid" id="numerosGrid"></div>
   </div>
-  <div id="ganhadorSection" style="display: none;" class="ganhador-screen"></div>
-  <div class="admin-link"><a href="admin.html">👑 Admin</a></div>
+  <div id="ganhadorSection" style="display: none;" class="ganhador"></div>
+  <div class="admin-link">
+    <button class="btn-admin" onclick="location.href='admin.html'">👑 Admin</button>
+  </div>
   <footer>Atualiza automática • Rifa online</footer>
 </div>
 
@@ -156,15 +194,13 @@
       configAtual = data[0];
       totalNumeros = configAtual.total_numeros || 1000;
       document.getElementById('totalConfigSpan').innerText = totalNumeros;
-      // Exibir brinde
       if (configAtual.foto_url) document.getElementById('brindeDiv').innerHTML = `<img src="${configAtual.foto_url}" style="max-width:100%; max-height:250px; border-radius:20px;">`;
-      // Exibir PIX
       if (configAtual.chave_pix) {
-        document.getElementById('pixDiv').innerHTML = `<h3>💰 Chave PIX</h3><input id="chavePixInput" value="${configAtual.chave_pix}" readonly><button id="copiarPixBtn">Copiar</button>`;
-        document.getElementById('copiarPixBtn')?.addEventListener('click', () => { document.getElementById('chavePixInput').select(); document.execCommand('copy'); alert('Copiado!'); });
+        document.getElementById('pixDiv').innerHTML = `<h3>💰 Chave PIX</h3><input id="chavePixInput" value="${configAtual.chave_pix}" readonly style="width:100%; max-width:350px; padding:12px; text-align:center;"><br><button id="copiarPixBtn">Copiar chave</button>`;
+        document.getElementById('copiarPixBtn')?.addEventListener('click', () => { document.getElementById('chavePixInput').select(); document.execCommand('copy'); alert('Chave PIX copiada! ✅'); });
       }
       document.getElementById('textoDiv').innerHTML = configAtual.texto_explicativo || '';
-      document.getElementById('titulo').textContent = configAtual.titulo || '💙 Rifa Azul';
+      document.getElementById('titulo').textContent = configAtual.titulo || '💙 Rifa Online';
     }
   }
 
@@ -183,11 +219,15 @@
         div.title = `Comprador: ${num.nome_comprador}`;
         div.onclick = async () => {
           const vendaData = await fetchAPI(`vendas?order=id.desc&limit=100`);
-          const venda = vendaData?.find(v => {
-            return fetchAPI(`venda_numeros?select=numero&venda_id=eq.${v.id}`).then(nums => nums.some(n => n.numero === num.numero));
-          });
-          if (venda) alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}\nCódigo da venda: #${venda.id}\nData: ${new Date(venda.data_venda).toLocaleString()}`);
-          else alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}`);
+          let codigoVenda = 'Não identificado';
+          for (const v of vendaData) {
+            const numsVenda = await fetchAPI(`venda_numeros?select=numero&venda_id=eq.${v.id}`);
+            if (numsVenda.some(n => n.numero === num.numero)) {
+              codigoVenda = v.id;
+              break;
+            }
+          }
+          alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}\nCódigo da venda: #${codigoVenda}`);
         };
       }
       grid.appendChild(div);
@@ -202,12 +242,12 @@
       contDiv.innerHTML = '⏳ Aguardando registro do ganhador...';
       document.getElementById('numerosSection').style.display = 'none';
       document.getElementById('ganhadorSection').style.display = 'block';
-      document.getElementById('ganhadorSection').innerHTML = `<h2>🎁 Sorteio realizado!</h2><div class="brinde-area"><img src="${configAtual.foto_url || ''}" style="max-width:200px"><p>Brinde: ${configAtual.titulo}</p><p>⏳ Aguardando o administrador definir o ganhador...</p></div>`;
+      document.getElementById('ganhadorSection').innerHTML = `<h2>🎁 Sorteio realizado!</h2><div class="brinde-area"><img src="${configAtual.foto_url || ''}" style="max-width:200px"><p>Brinde: ${configAtual.titulo || 'Rifa Online'}</p><p>⏳ Aguardando o administrador definir o ganhador...</p></div>`;
     } else if (configAtual.ganhador_nome) {
       contDiv.innerHTML = `🎉 GANHADOR: ${configAtual.ganhador_nome} - Número ${configAtual.ganhador_numero} 🎉`;
       document.getElementById('numerosSection').style.display = 'none';
       document.getElementById('ganhadorSection').style.display = 'block';
-      document.getElementById('ganhadorSection').innerHTML = `<h2>🏆 GANHADOR DEFINIDO 🏆</h2><div class="brinde-area"><img src="${configAtual.foto_url || ''}" style="max-width:250px"><p><strong>Brinde:</strong> ${configAtual.titulo}</p><p><strong>Número sorteado:</strong> ${configAtual.ganhador_numero}</p><p><strong>Ganhador:</strong> ${configAtual.ganhador_nome}</p></div>`;
+      document.getElementById('ganhadorSection').innerHTML = `<h2>🏆 GANHADOR DEFINIDO 🏆</h2><div class="brinde-area"><img src="${configAtual.foto_url || ''}" style="max-width:250px"><p><strong>Brinde:</strong> ${configAtual.titulo || 'Rifa Online'}</p><p><strong>Número sorteado:</strong> ${configAtual.ganhador_numero}</p><p><strong>Ganhador:</strong> ${configAtual.ganhador_nome}</p></div>`;
     } else if (!configAtual.rifa_encerrada && diff > 0) {
       const dias = Math.floor(diff / 86400000), horas = Math.floor((diff % 86400000) / 3600000), minutos = Math.floor((diff % 3600000) / 60000), seg = Math.floor((diff % 60000) / 1000);
       contDiv.innerHTML = `⏰ SORTEIO EM:<br>${dias}d ${horas}h ${minutos}m ${seg}s`;
@@ -227,7 +267,7 @@
     else resultadoDiv.innerHTML = `✅ Seus números: ${data.map(n => n.numero).sort((a,b)=>a-b).join(', ')}`;
   };
   document.getElementById('whatsappBtn').onclick = () => {
-    let texto = configAtual?.texto_compartilhamento || 'Participe da rifa online!';
+    let texto = configAtual?.texto_compartilhamento || 'Participe da rifa online! 🎟️';
     texto += `\n\nLink: ${window.location.href}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
   };
