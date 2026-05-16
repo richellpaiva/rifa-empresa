@@ -401,16 +401,23 @@
     }
   }
 
+  // FUNÇÃO EDITAR VENDA COM LOADING E VALIDAÇÃO DE NÚMEROS JÁ VENDIDOS
   async function editarVenda(vendaId, nomeAtual) {
+    showLoading('Carregando dados da venda...');
     const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
     const numsAtuais = numerosVenda.map(n => n.numero).sort((a,b)=>a-b);
+    hideLoading();
+    
     const opcao = prompt(`Venda #${vendaId}\nComprador: ${nomeAtual}\nNúmeros: ${numsAtuais.join(',')}\n\n1 - Editar nome\n2 - Editar números`);
+    
     if (opcao === '1') {
       const novoNome = prompt('Novo nome:', nomeAtual);
       if (novoNome && novoNome !== nomeAtual) {
+        showLoading('Atualizando nome...');
         await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ comprador: novoNome }) });
         for (const num of numsAtuais) await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: novoNome }) });
         await registrarLog(`Editou venda ${vendaId} nome: ${novoNome}`);
+        hideLoading();
         mostrarMensagem('vendaMensagem', '✅ Nome atualizado!', 'sucesso');
         carregarVendas(); carregarNumeros(); atualizarEstatisticas();
       }
@@ -419,16 +426,42 @@
       if (novosInput) {
         const novosNumeros = novosInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n>=1 && n<=1000);
         if (novosNumeros.length) {
+          showLoading('Verificando disponibilidade dos números...');
+          
+          // Verificar se os novos números estão disponíveis (não vendidos por outra venda)
+          const numerosOcupados = [];
+          for (const num of novosNumeros) {
+            if (!numsAtuais.includes(num)) {
+              const verificar = await fetchSupabase(`numeros?select=nome_comprador&numero=eq.${num}`);
+              if (verificar && verificar[0] && verificar[0].nome_comprador) {
+                numerosOcupados.push(num);
+              }
+            }
+          }
+          
+          if (numerosOcupados.length > 0) {
+            hideLoading();
+            mostrarMensagem('vendaMensagem', `❌ Números já vendidos: ${numerosOcupados.join(', ')}. Remova-os e tente novamente.`, 'erro');
+            return;
+          }
+          
+          showLoading('Atualizando números da venda...');
+          
+          // Remover números antigos da venda
           for (const num of numsAtuais) {
             await fetchSupabase(`venda_numeros?numero=eq.${num}&venda_id=eq.${vendaId}`, { method: 'DELETE' });
             await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
           }
+          
+          // Adicionar novos números
           for (const num of novosNumeros) {
             await fetchSupabase('venda_numeros', { method: 'POST', body: JSON.stringify({ venda_id: vendaId, numero: num }) });
             await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nomeAtual, venda_id: vendaId }) });
           }
+          
           await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ total_numeros: novosNumeros.length }) });
           await registrarLog(`Editou venda ${vendaId} números: ${novosNumeros.join(',')}`);
+          hideLoading();
           mostrarMensagem('vendaMensagem', '✅ Números atualizados!', 'sucesso');
           carregarVendas(); carregarNumeros(); atualizarEstatisticas();
         }
@@ -439,22 +472,35 @@
   async function excluirVenda(vendaId) {
     if (!confirm('Excluir esta venda? Os números voltarão a ficar disponíveis.')) return;
     try {
+      showLoading('Excluindo venda...');
       const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
       for (const item of numerosVenda) await fetchSupabase(`numeros?numero=eq.${item.numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
       await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'DELETE' });
       await registrarLog(`Excluiu venda ${vendaId}`);
+      hideLoading();
       mostrarMensagem('vendaMensagem', '✅ Venda excluída!', 'sucesso');
       carregarVendas(); carregarNumeros(); atualizarEstatisticas();
-    } catch (e) { mostrarMensagem('vendaMensagem', 'Erro: ' + e.message, 'erro'); }
+    } catch (e) { hideLoading(); mostrarMensagem('vendaMensagem', 'Erro: ' + e.message, 'erro'); }
   }
 
+  // FUNÇÃO VENDER NÚMEROS SELECIONADOS COM VALIDAÇÃO DE DISPONIBILIDADE
   async function venderNumerosSelecionados(nomeComprador) {
     const numeros = Array.from(numerosSelecionados);
     if (numeros.length === 0) throw new Error('Nenhum número selecionado');
+    
+    // Verificar disponibilidade de cada número
+    const numerosIndisponiveis = [];
     for (const num of numeros) {
       const encontrado = numerosAtuais.find(n => n.numero === num);
-      if (!encontrado || encontrado.nome_comprador) throw new Error(`Número ${num} já vendido!`);
+      if (!encontrado || encontrado.nome_comprador) {
+        numerosIndisponiveis.push(num);
+      }
     }
+    
+    if (numerosIndisponiveis.length > 0) {
+      throw new Error(`Os seguintes números já foram vendidos: ${numerosIndisponiveis.join(', ')}`);
+    }
+    
     const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/vendas`, { method: 'POST', headers, body: JSON.stringify({ comprador: nomeComprador, data_venda: new Date(), total_numeros: numeros.length, usuario_admin: usuarioLogado?.usuario }) });
     if (!insertRes.ok) throw new Error('Erro ao registrar venda');
     const location = insertRes.headers.get('location');
@@ -572,7 +618,7 @@
     const nome = document.getElementById('venderNome').value.trim();
     if (!nome) return mostrarMensagem('venderMensagem', 'Digite o nome do comprador', 'erro');
     if (numerosSelecionados.size === 0) return mostrarMensagem('venderMensagem', 'Selecione números', 'erro');
-    showLoading(`Registrando venda para ${nome}...`);
+    showLoading(`Verificando disponibilidade...`);
     try {
       const qtd = await venderNumerosSelecionados(nome);
       hideLoading();
