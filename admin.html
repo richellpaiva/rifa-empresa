@@ -147,86 +147,135 @@
 
 <script>
   (function() {
+    // Configuração do Supabase (URL e chave)
     const SUPABASE_URL = 'https://wrofweogvhgkocevlvdf.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
-    
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Headers padrão para todas as requisições
+    const headers = {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json'
+    };
+
     let usuarioLogado = null;
 
     function mostrarMensagem(elId, texto, tipo) {
       const div = document.getElementById(elId);
+      if (!div) return;
       div.textContent = texto;
       div.className = `mensagem ${tipo}`;
       setTimeout(() => { div.className = 'mensagem'; div.textContent = ''; }, 3000);
     }
 
+    // ========== FUNÇÕES DE ACESSO AO SUPABASE USANDO FETCH ==========
+    async function fetchSupabase(endpoint, options = {}) {
+      const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+      const response = await fetch(url, { ...options, headers });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Erro ${response.status}: ${error}`);
+      }
+      return response.json();
+    }
+
     async function fazerLogin(username, password) {
-      const { data, error } = await supabaseClient
-        .from('usuarios')
-        .select('*')
-        .eq('username', username)
-        .eq('password', password);
-      if (error) throw new Error(error.message);
+      const data = await fetchSupabase(`usuarios?username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&select=*`);
       if (!data || data.length === 0) throw new Error('Usuário ou senha incorretos');
       return data[0];
     }
 
     async function registrarLog(acao) {
       if (!usuarioLogado) return;
-      await supabaseClient.from('logs').insert({
-        acao: acao,
-        usuario: usuarioLogado.username,
-        data_hora: new Date()
+      await fetchSupabase('logs', {
+        method: 'POST',
+        body: JSON.stringify({ acao, usuario: usuarioLogado.username, data_hora: new Date() })
       });
     }
 
     async function carregarLogs() {
-      const { data } = await supabaseClient
-        .from('logs')
-        .select('*')
-        .order('data_hora', { ascending: false })
-        .limit(15);
-      const logsDiv = document.getElementById('logsLista');
-      if (data && data.length > 0) {
-        logsDiv.innerHTML = data.map(log => `📌 ${new Date(log.data_hora).toLocaleString()} - ${log.acao} (${log.usuario})`).join('<br>');
-      } else {
-        logsDiv.innerHTML = 'Nenhum log registrado.';
-      }
+      try {
+        const data = await fetchSupabase('logs?order=data_hora.desc&limit=15');
+        const logsDiv = document.getElementById('logsLista');
+        if (data && data.length > 0) {
+          logsDiv.innerHTML = data.map(log => `📌 ${new Date(log.data_hora).toLocaleString()} - ${log.acao} (${log.usuario})`).join('<br>');
+        } else {
+          logsDiv.innerHTML = 'Nenhum log registrado.';
+        }
+      } catch(e) { console.error(e); }
     }
 
     async function carregarNumeros() {
-      const { data } = await supabaseClient
-        .from('numeros')
-        .select('*')
-        .order('numero', { ascending: true });
-      const grid = document.getElementById('listaNumeros');
-      if (data) {
-        grid.innerHTML = data.map(num => `
-          <div class="numero-item ${num.nome_comprador ? 'numero-vendido' : 'numero-livre'}"
-               title="${num.nome_comprador ? `Vendido para: ${num.nome_comprador}` : 'Disponível'}">
-            ${num.numero}
-          </div>
-        `).join('');
-      }
+      try {
+        const data = await fetchSupabase('numeros?order=numero.asc');
+        const grid = document.getElementById('listaNumeros');
+        if (data) {
+          grid.innerHTML = data.map(num => `
+            <div class="numero-item ${num.nome_comprador ? 'numero-vendido' : 'numero-livre'}"
+                 title="${num.nome_comprador ? `Vendido para: ${num.nome_comprador}` : 'Disponível'}">
+              ${num.numero}
+            </div>
+          `).join('');
+        }
+      } catch(e) { console.error(e); }
     }
 
     async function carregarConfig() {
-      const { data } = await supabaseClient.from('config').select('*').eq('id', 1);
-      if (data && data[0]) {
-        const c = data[0];
-        document.getElementById('configTitulo').value = c.titulo || '';
-        document.getElementById('configChavePix').value = c.chave_pix || '';
-        document.getElementById('configTexto').value = c.texto_explicativo || '';
-        document.getElementById('configWhatsapp').value = c.texto_compartilhamento || '';
-        if (c.data_sorteio) {
-          document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0, 16);
+      try {
+        const data = await fetchSupabase('config?id=eq.1&select=*');
+        if (data && data[0]) {
+          const c = data[0];
+          document.getElementById('configTitulo').value = c.titulo || '';
+          document.getElementById('configChavePix').value = c.chave_pix || '';
+          document.getElementById('configTexto').value = c.texto_explicativo || '';
+          document.getElementById('configWhatsapp').value = c.texto_compartilhamento || '';
+          if (c.data_sorteio) {
+            document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0, 16);
+          }
+          if (c.foto_url) {
+            document.getElementById('fotoPreview').innerHTML = `<img src="${c.foto_url}" style="max-width: 200px; border-radius: 10px;">`;
+          }
         }
-        if (c.foto_url) {
-          document.getElementById('fotoPreview').innerHTML = `<img src="${c.foto_url}" style="max-width: 200px; border-radius: 10px;">`;
-        }
-      }
+      } catch(e) { console.error(e); }
     }
 
+    async function venderNumero(numero, nome) {
+      const verificar = await fetchSupabase(`numeros?numero=eq.${numero}&select=nome_comprador`);
+      if (verificar && verificar[0] && verificar[0].nome_comprador) {
+        throw new Error(`Número ${numero} já está vendido!`);
+      }
+      await fetchSupabase(`numeros?numero=eq.${numero}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ nome_comprador: nome, data_compra: new Date() })
+      });
+    }
+
+    async function salvarConfig(titulo, chavePix, texto, dataSorteio, whatsapp) {
+      await fetchSupabase('config?id=eq.1', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          titulo, chave_pix: chavePix, texto_explicativo: texto,
+          data_sorteio: dataSorteio || null, texto_compartilhamento: whatsapp
+        })
+      });
+    }
+
+    async function definirGanhador(numero, nome) {
+      await fetchSupabase('config?id=eq.1', {
+        method: 'PATCH',
+        body: JSON.stringify({ ganhador_nome: nome, ganhador_numero: numero, rifa_encerrada: true })
+      });
+    }
+
+    async function encerrarRifa() {
+      await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ rifa_encerrada: true }) });
+    }
+
+    async function reabrirRifa() {
+      await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ rifa_encerrada: false, ganhador_nome: null, ganhador_numero: null }) });
+    }
+
+    // ========== EVENTOS DOS BOTÕES ==========
     document.getElementById('btnLogin').onclick = async () => {
       const username = document.getElementById('loginUsername').value.trim();
       const password = document.getElementById('loginPassword').value;
@@ -239,7 +288,7 @@
         usuarioLogado = user;
         document.getElementById('telaLogin').style.display = 'none';
         document.getElementById('painelAdmin').style.display = 'block';
-        document.getElementById('usuarioInfo').innerHTML = `✅ Logado como: <strong>${user.nome}</strong>`;
+        document.getElementById('usuarioInfo').innerHTML = `✅ Logado como: <strong>${user.nome || user.username}</strong>`;
         await registrarLog('Login realizado');
         await carregarNumeros();
         await carregarConfig();
@@ -265,27 +314,16 @@
         mostrarMensagem('venderMensagem', 'Preencha número e nome', 'erro');
         return;
       }
-      const { data: verificar } = await supabaseClient
-        .from('numeros')
-        .select('nome_comprador')
-        .eq('numero', numero);
-      if (verificar && verificar[0] && verificar[0].nome_comprador) {
-        mostrarMensagem('venderMensagem', `Número ${numero} já está vendido!`, 'erro');
-        return;
-      }
-      const { error } = await supabaseClient
-        .from('numeros')
-        .update({ nome_comprador: nome, data_compra: new Date() })
-        .eq('numero', numero);
-      if (error) {
-        mostrarMensagem('venderMensagem', 'Erro ao vender', 'erro');
-      } else {
+      try {
+        await venderNumero(numero, nome);
         mostrarMensagem('venderMensagem', `✅ Número ${numero} vendido para ${nome}!`, 'sucesso');
         document.getElementById('venderNumero').value = '';
         document.getElementById('venderNome').value = '';
         await registrarLog(`Vendeu número ${numero} para ${nome}`);
         await carregarNumeros();
         await carregarLogs();
+      } catch(e) {
+        mostrarMensagem('venderMensagem', e.message, 'erro');
       }
     };
 
@@ -295,16 +333,13 @@
       const texto = document.getElementById('configTexto').value;
       const dataSorteio = document.getElementById('configDataSorteio').value;
       const whatsapp = document.getElementById('configWhatsapp').value;
-      const { error } = await supabaseClient
-        .from('config')
-        .update({ titulo, chave_pix: chavePix, texto_explicativo: texto, data_sorteio: dataSorteio || null, texto_compartilhamento: whatsapp })
-        .eq('id', 1);
-      if (error) {
-        mostrarMensagem('configMensagem', 'Erro ao salvar', 'erro');
-      } else {
+      try {
+        await salvarConfig(titulo, chavePix, texto, dataSorteio, whatsapp);
         mostrarMensagem('configMensagem', '✅ Configurações salvas!', 'sucesso');
         await registrarLog('Atualizou configurações');
         await carregarLogs();
+      } catch(e) {
+        mostrarMensagem('configMensagem', 'Erro ao salvar', 'erro');
       }
     };
 
@@ -314,21 +349,24 @@
         mostrarMensagem('fotoMensagem', 'Selecione uma foto', 'erro');
         return;
       }
-      const fileName = `${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabaseClient.storage.from('brindes').upload(fileName, file);
-      if (uploadError) {
-        mostrarMensagem('fotoMensagem', 'Erro no upload', 'erro');
-        return;
-      }
-      const { data: { publicUrl } } = supabaseClient.storage.from('brindes').getPublicUrl(fileName);
-      const { error: updateError } = await supabaseClient.from('config').update({ foto_url: publicUrl }).eq('id', 1);
-      if (updateError) {
-        mostrarMensagem('fotoMensagem', 'Erro ao salvar URL', 'erro');
-      } else {
+      try {
+        const fileName = `${Date.now()}_${file.name}`;
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/brindes/${fileName}`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          body: file
+        });
+        if (!uploadRes.ok) throw new Error('Upload falhou');
+        const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/brindes/${fileName}`;
+        await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ foto_url: publicUrl }) });
         mostrarMensagem('fotoMensagem', '✅ Foto enviada!', 'sucesso');
         document.getElementById('fotoPreview').innerHTML = `<img src="${publicUrl}" style="max-width: 200px; border-radius: 10px;">`;
         await registrarLog('Atualizou foto do brinde');
         await carregarLogs();
+      } catch(e) {
+        mostrarMensagem('fotoMensagem', 'Erro no upload', 'erro');
       }
     };
 
@@ -340,23 +378,20 @@
         return;
       }
       if (confirm(`Definir ${nome} como ganhador do número ${numero}?`)) {
-        const { error } = await supabaseClient
-          .from('config')
-          .update({ ganhador_nome: nome, ganhador_numero: numero, rifa_encerrada: true })
-          .eq('id', 1);
-        if (error) {
-          mostrarMensagem('ganhadorMensagem', 'Erro ao definir ganhador', 'erro');
-        } else {
+        try {
+          await definirGanhador(numero, nome);
           mostrarMensagem('ganhadorMensagem', `✅ Ganhador definido: ${nome} (Nº ${numero})`, 'sucesso');
           await registrarLog(`Definiu ganhador: ${nome} - Número ${numero}`);
           await carregarLogs();
+        } catch(e) {
+          mostrarMensagem('ganhadorMensagem', 'Erro ao definir ganhador', 'erro');
         }
       }
     };
 
     document.getElementById('btnEncerrar').onclick = async () => {
       if (confirm('Encerrar a rifa?')) {
-        await supabaseClient.from('config').update({ rifa_encerrada: true }).eq('id', 1);
+        await encerrarRifa();
         await registrarLog('Encerrou a rifa');
         alert('✅ Rifa encerrada!');
         await carregarLogs();
@@ -365,7 +400,7 @@
 
     document.getElementById('btnReabrir').onclick = async () => {
       if (confirm('Reabrir a rifa?')) {
-        await supabaseClient.from('config').update({ rifa_encerrada: false, ganhador_nome: null, ganhador_numero: null }).eq('id', 1);
+        await reabrirRifa();
         await registrarLog('Reabriu a rifa');
         alert('✅ Rifa reaberta!');
         await carregarLogs();
@@ -373,26 +408,25 @@
     };
 
     document.getElementById('btnPDF').onclick = async () => {
-      const { data } = await supabaseClient
-        .from('numeros')
-        .select('numero, nome_comprador')
-        .not('nome_comprador', 'is', null);
-      if (!data || data.length === 0) {
-        alert('Nenhum comprador registrado');
-        return;
-      }
-      let html = '<html><head><meta charset="UTF-8"><title>Compradores</title>';
-      html += '<style>body{font-family:Arial;} li{margin:5px 0;}</style></head><body>';
-      html += '<h1>Lista de Compradores</h1><ul>';
-      for (const c of data) {
-        html += `<li>Número ${c.numero} - ${c.nome_comprador}</li>`;
-      }
-      html += '</ul></body></html>';
-      const win = window.open();
-      win.document.write(html);
-      win.document.close();
-      win.print();
-      await registrarLog('Gerou relatório PDF');
+      try {
+        const data = await fetchSupabase('numeros?not=null.nome_comprador&select=numero,nome_comprador');
+        if (!data || data.length === 0) {
+          alert('Nenhum comprador registrado');
+          return;
+        }
+        let html = '<html><head><meta charset="UTF-8"><title>Compradores</title>';
+        html += '<style>body{font-family:Arial;} li{margin:5px 0;}</style></head><body>';
+        html += '<h1>Lista de Compradores</h1><ul>';
+        for (const c of data) {
+          html += `<li>Número ${c.numero} - ${c.nome_comprador}</li>`;
+        }
+        html += '</ul></body></html>';
+        const win = window.open();
+        win.document.write(html);
+        win.document.close();
+        win.print();
+        await registrarLog('Gerou relatório PDF');
+      } catch(e) { alert('Erro ao gerar PDF'); }
     };
   })();
 </script>
