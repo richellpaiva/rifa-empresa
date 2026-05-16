@@ -44,6 +44,7 @@
     .btn-danger:hover { background: #a82313; }
     .btn-success { background: #27ae60; }
     .btn-success:hover { background: #1e8449; }
+    .btn-warning { background: #f39c12; color: #2c3e50; }
     .mensagem {
       padding: 12px;
       border-radius: 30px;
@@ -60,6 +61,9 @@
       max-height: 400px;
       overflow-y: auto;
       margin-top: 15px;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
     }
     .numero-item {
       width: 60px;
@@ -69,10 +73,20 @@
       justify-content: center;
       border-radius: 16px;
       font-weight: bold;
+      cursor: pointer;
+      transition: 0.1s;
     }
     .numero-livre { background: #d2b4de; color: #4a235a; }
-    .numero-vendido { background: #4a235a; color: #f5eef8; }
+    .numero-vendido { background: #4a235a; color: #f5eef8; cursor: not-allowed; opacity: 0.6; }
+    .numero-selecionado { background: #f1c40f; color: #2c3e50; box-shadow: 0 0 0 2px #e67e22; transform: scale(0.98); }
     .info { background: #f4ecf7; padding: 15px; border-radius: 20px; margin: 15px 0; }
+    .selecao-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 <body>
@@ -95,15 +109,16 @@
     </div>
 
     <div class="card">
-      <h2>➕ Vender número (1 a 1000)</h2>
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <input type="number" id="venderNumero" placeholder="Número">
-        <input type="text" id="venderNome" placeholder="Nome completo">
-        <button id="btnVender">Vender</button>
+      <div class="selecao-bar">
+        <h2>➕ Vender múltiplos números</h2>
+        <div>
+          <button id="limparSelecaoBtn" class="btn-warning">Limpar seleção</button>
+          <button id="venderSelecionadosBtn" class="btn-success">Vender selecionados</button>
+        </div>
       </div>
-      <div id="venderMensagem" class="mensagem"></div>
-      <h2>📊 Números da rifa</h2>
+      <input type="text" id="venderNome" placeholder="Nome completo do comprador" style="margin-bottom: 15px;">
       <div id="listaNumeros" class="grid-numeros"></div>
+      <div id="venderMensagem" class="mensagem"></div>
     </div>
 
     <div class="card">
@@ -167,6 +182,8 @@
   }
 
   let usuarioLogado = null;
+  let numerosAtuais = [];
+  let numerosSelecionados = new Set(); // armazena números selecionados
 
   function mostrarMensagem(elId, texto, tipo) {
     const div = document.getElementById(elId);
@@ -176,7 +193,6 @@
     setTimeout(() => { div.className = 'mensagem'; div.textContent = ''; }, 3000);
   }
 
-  // LOGIN CORRIGIDO usando as colunas "usuario" e "senha"
   async function fazerLogin(usuario, senha) {
     const data = await fetchSupabase(`usuarios_admin?usuario=eq.${encodeURIComponent(usuario)}&senha=eq.${encodeURIComponent(senha)}`);
     if (!data || data.length === 0) throw new Error('Usuário ou senha inválidos');
@@ -204,16 +220,45 @@
   async function carregarNumeros() {
     try {
       const data = await fetchSupabase('numeros?order=numero.asc');
-      const grid = document.getElementById('listaNumeros');
-      if (data) {
-        grid.innerHTML = data.map(num => `
-          <div class="numero-item ${num.nome_comprador ? 'numero-vendido' : 'numero-livre'}"
-               title="${num.nome_comprador ? `Vendido: ${num.nome_comprador}` : 'Livre'}">
-            ${num.numero}
-          </div>
-        `).join('');
-      }
+      numerosAtuais = data || [];
+      renderizarNumeros();
     } catch(e) { console.error(e); }
+  }
+
+  function renderizarNumeros() {
+    const grid = document.getElementById('listaNumeros');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (const num of numerosAtuais) {
+      const div = document.createElement('div');
+      div.className = 'numero-item';
+      const isVendido = !!num.nome_comprador;
+      const isSelecionado = numerosSelecionados.has(num.numero);
+      
+      if (isVendido) {
+        div.classList.add('numero-vendido');
+        div.title = `Vendido para: ${num.nome_comprador}`;
+      } else if (isSelecionado) {
+        div.classList.add('numero-selecionado');
+        div.title = 'Clique para desmarcar';
+      } else {
+        div.classList.add('numero-livre');
+        div.title = 'Clique para selecionar';
+      }
+      div.textContent = num.numero;
+      
+      if (!isVendido) {
+        div.onclick = () => {
+          if (numerosSelecionados.has(num.numero)) {
+            numerosSelecionados.delete(num.numero);
+          } else {
+            numerosSelecionados.add(num.numero);
+          }
+          renderizarNumeros(); // re-renderiza com as seleções
+        };
+      }
+      grid.appendChild(div);
+    }
   }
 
   async function carregarConfig() {
@@ -231,7 +276,80 @@
     } catch(e) { console.error(e); }
   }
 
-  // EVENTOS
+  // Vender múltiplos números selecionados
+  async function venderNumerosSelecionados(nomeComprador) {
+    const numeros = Array.from(numerosSelecionados);
+    if (numeros.length === 0) throw new Error('Nenhum número selecionado');
+    
+    // 1. Verificar se todos estão livres
+    const livres = numeros.filter(num => {
+      const encontrado = numerosAtuais.find(n => n.numero === num);
+      return encontrado && !encontrado.nome_comprador;
+    });
+    if (livres.length !== numeros.length) {
+      const ocupados = numeros.filter(num => {
+        const encontrado = numerosAtuais.find(n => n.numero === num);
+        return encontrado && encontrado.nome_comprador;
+      });
+      throw new Error(`Números já vendidos: ${ocupados.join(', ')}`);
+    }
+    
+    // 2. Criar registro de venda
+    const { data: venda, error: vendaError } = await fetchSupabase('vendas', {
+      method: 'POST',
+      body: JSON.stringify({
+        comprador: nomeComprador,
+        data_venda: new Date(),
+        total_numeros: numeros.length,
+        usuario_admin: usuarioLogado?.usuario
+      })
+    });
+    // O retorno do POST pode não ser o objeto, então precisamos buscar o ID da venda recém-criada
+    // Melhor: primeiro inserir e depois buscar o último ID desse usuário. Vou fazer de forma mais direta:
+    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/vendas`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        comprador: nomeComprador,
+        data_venda: new Date(),
+        total_numeros: numeros.length,
+        usuario_admin: usuarioLogado?.usuario
+      })
+    });
+    if (!insertRes.ok) throw new Error('Erro ao registrar venda');
+    // Pegar o ID da venda (location header)
+    const location = insertRes.headers.get('location');
+    let vendaId = null;
+    if (location) {
+      const match = location.match(/vendas[?]id=eq.(\d+)/);
+      if (match) vendaId = match[1];
+    }
+    if (!vendaId) {
+      // Fallback: buscar a última venda do usuário
+      const ultimasVendas = await fetchSupabase(`vendas?usuario_admin=eq.${usuarioLogado.usuario}&order=id.desc&limit=1`);
+      if (ultimasVendas && ultimasVendas[0]) vendaId = ultimasVendas[0].id;
+      else throw new Error('Não foi possível identificar a venda');
+    }
+    
+    // 3. Inserir cada número na tabela venda_numeros e atualizar numeros
+    for (const num of numeros) {
+      await fetchSupabase('venda_numeros', {
+        method: 'POST',
+        body: JSON.stringify({ venda_id: vendaId, numero: num })
+      });
+      await fetchSupabase(`numeros?numero=eq.${num}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ nome_comprador: nomeComprador, data_compra: new Date(), venda_id: vendaId })
+      });
+    }
+    
+    // 4. Limpar seleção e recarregar
+    numerosSelecionados.clear();
+    await carregarNumeros();
+    return numeros.length;
+  }
+
+  // Eventos
   document.getElementById('btnLogin').onclick = async () => {
     const usuario = document.getElementById('loginUsuario').value.trim();
     const senha = document.getElementById('loginSenha').value;
@@ -257,24 +375,33 @@
     document.getElementById('painelAdmin').style.display = 'none';
   };
 
-  document.getElementById('btnVender').onclick = async () => {
-    const numero = parseInt(document.getElementById('venderNumero').value);
-    const nome = document.getElementById('venderNome').value.trim();
-    if (!numero || !nome) { mostrarMensagem('venderMensagem', 'Preencha número e nome', 'erro'); return; }
-    if (numero < 1 || numero > 1000) { mostrarMensagem('venderMensagem', 'Número inválido (1-1000)', 'erro'); return; }
-    try {
-      const verif = await fetchSupabase(`numeros?numero=eq.${numero}&select=nome_comprador`);
-      if (verif[0]?.nome_comprador) throw new Error(`Número ${numero} já vendido!`);
-      await fetchSupabase(`numeros?numero=eq.${numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nome, data_compra: new Date() }) });
-      mostrarMensagem('venderMensagem', `✅ Número ${numero} vendido para ${nome}`, 'sucesso');
-      document.getElementById('venderNumero').value = '';
-      document.getElementById('venderNome').value = '';
-      await registrarLog(`Vendeu ${numero} para ${nome}`);
-      await carregarNumeros();
-      await carregarLogs();
-    } catch(e) { mostrarMensagem('venderMensagem', e.message, 'erro'); }
+  document.getElementById('limparSelecaoBtn').onclick = () => {
+    numerosSelecionados.clear();
+    renderizarNumeros();
   };
 
+  document.getElementById('venderSelecionadosBtn').onclick = async () => {
+    const nome = document.getElementById('venderNome').value.trim();
+    if (!nome) {
+      mostrarMensagem('venderMensagem', 'Digite o nome do comprador', 'erro');
+      return;
+    }
+    if (numerosSelecionados.size === 0) {
+      mostrarMensagem('venderMensagem', 'Selecione pelo menos um número', 'erro');
+      return;
+    }
+    try {
+      const qtd = await venderNumerosSelecionados(nome);
+      mostrarMensagem('venderMensagem', `✅ Venda realizada! ${qtd} números vendidos para ${nome}`, 'sucesso');
+      document.getElementById('venderNome').value = '';
+      await registrarLog(`Vendeu ${qtd} números para ${nome} (${Array.from(numerosSelecionados).join(',')})`);
+      await carregarLogs();
+    } catch(e) {
+      mostrarMensagem('venderMensagem', e.message, 'erro');
+    }
+  };
+
+  // Demais funções (config, foto, ganhador, etc) permanecem iguais.
   document.getElementById('btnSalvarConfig').onclick = async () => {
     const titulo = document.getElementById('configTitulo').value;
     const chave = document.getElementById('configChavePix').value;
