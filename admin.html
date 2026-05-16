@@ -12,7 +12,7 @@
       min-height: 100vh;
       padding: 20px;
     }
-    .container { max-width: 1100px; margin: 0 auto; }
+    .container { max-width: 1200px; margin: 0 auto; }
     .card {
       background: white;
       border-radius: 25px;
@@ -45,6 +45,7 @@
     .btn-success { background: #27ae60; }
     .btn-success:hover { background: #1e8449; }
     .btn-warning { background: #f39c12; color: #2c3e50; }
+    .btn-info { background: #3498db; }
     .mensagem {
       padding: 12px;
       border-radius: 30px;
@@ -87,6 +88,10 @@
       flex-wrap: wrap;
       margin-bottom: 15px;
     }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f4ecf7; }
+    .acao-btn { padding: 5px 10px; margin: 2px; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -108,6 +113,23 @@
       <div id="usuarioInfo" class="info"></div>
     </div>
 
+    <!-- Seção de Configuração do Total de Números -->
+    <div class="card">
+      <h2>⚙️ Configurar total de números</h2>
+      <div style="display: flex; gap: 10px; align-items: flex-end;">
+        <div style="flex:2">
+          <label>Total de números (1 a 5000):</label>
+          <input type="number" id="totalNumerosConfig" min="1" max="5000" step="1">
+        </div>
+        <div style="flex:1">
+          <button id="btnAtualizarTotal" class="btn-warning">Atualizar rifa</button>
+        </div>
+      </div>
+      <div id="totalMensagem" class="mensagem"></div>
+      <small>⚠️ Atenção: números já vendidos serão mantidos. Novos números serão adicionados. Números acima do novo total serão removidos (apenas se não vendidos).</small>
+    </div>
+
+    <!-- Venda múltipla -->
     <div class="card">
       <div class="selecao-bar">
         <h2>➕ Vender múltiplos números</h2>
@@ -121,8 +143,28 @@
       <div id="venderMensagem" class="mensagem"></div>
     </div>
 
+    <!-- Consulta/Edição/Exclusão de Vendas -->
     <div class="card">
-      <h2>⚙️ Configurações</h2>
+      <h2>📋 Consultar vendas</h2>
+      <div style="display: flex; gap: 10px;">
+        <input type="text" id="pesquisarComprador" placeholder="Pesquisar por nome do comprador" style="flex:2;">
+        <button id="btnPesquisarVenda" class="btn-info">Pesquisar</button>
+        <button id="btnMostrarTodasVendas" class="btn-info">Mostrar todas</button>
+      </div>
+      <div id="vendasLista" style="max-height: 300px; overflow-y: auto;">
+        <table id="tabelaVendas">
+          <thead>
+            <tr><th>ID</th><th>Comprador</th><th>Data</th><th>Qtd</th><th>Ações</th></tr>
+          </thead>
+          <tbody id="corpoVendas"></tbody>
+        </table>
+      </div>
+      <div id="vendaMensagem" class="mensagem"></div>
+    </div>
+
+    <!-- Demais configurações -->
+    <div class="card">
+      <h2>⚙️ Configurações da rifa</h2>
       <input type="text" id="configTitulo" placeholder="Título" value="Rifa Online">
       <input type="text" id="configChavePix" placeholder="Chave PIX">
       <textarea id="configTexto" rows="3" placeholder="Texto explicativo"></textarea>
@@ -142,7 +184,7 @@
 
     <div class="card">
       <h2>🏆 Definir ganhador</h2>
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <div style="display: flex; gap: 10px;">
         <input type="number" id="ganhadorNumero" placeholder="Número">
         <input type="text" id="ganhadorNome" placeholder="Nome">
         <button id="btnDefinirGanhador" class="btn-success">Definir</button>
@@ -183,40 +225,166 @@
 
   let usuarioLogado = null;
   let numerosAtuais = [];
-  let numerosSelecionados = new Set(); // armazena números selecionados
+  let numerosSelecionados = new Set();
 
+  // ------------------ FUNÇÕES GERAIS ------------------
   function mostrarMensagem(elId, texto, tipo) {
     const div = document.getElementById(elId);
     if (!div) return;
     div.textContent = texto;
     div.className = `mensagem ${tipo}`;
-    setTimeout(() => { div.className = 'mensagem'; div.textContent = ''; }, 3000);
-  }
-
-  async function fazerLogin(usuario, senha) {
-    const data = await fetchSupabase(`usuarios_admin?usuario=eq.${encodeURIComponent(usuario)}&senha=eq.${encodeURIComponent(senha)}`);
-    if (!data || data.length === 0) throw new Error('Usuário ou senha inválidos');
-    return data[0];
+    setTimeout(() => { div.className = 'mensagem'; div.textContent = ''; }, 4000);
   }
 
   async function registrarLog(acao) {
     if (!usuarioLogado) return;
-    await fetchSupabase('logs', {
-      method: 'POST',
-      body: JSON.stringify({ acao, usuario: usuarioLogado.usuario, data_hora: new Date() })
-    }).catch(e => console.error);
+    await fetchSupabase('logs', { method: 'POST', body: JSON.stringify({ acao, usuario: usuarioLogado.usuario, data_hora: new Date() }) }).catch(e => console.error);
   }
 
-  async function carregarLogs() {
+  // ------------------ GERENCIAR TOTAL DE NÚMEROS ------------------
+  async function carregarTotalNumeros() {
+    const data = await fetchSupabase('config?id=eq.1');
+    if (data && data[0]) {
+      const total = data[0].total_numeros || 1000;
+      document.getElementById('totalNumerosConfig').value = total;
+    }
+  }
+
+  async function atualizarTotalNumeros(novoTotal) {
+    if (novoTotal < 1 || novoTotal > 5000) throw new Error('Total deve ser entre 1 e 5000');
+    // Buscar números existentes
+    const numerosExistentes = await fetchSupabase('numeros?order=numero.asc');
+    const vendidos = numerosExistentes.filter(n => n.nome_comprador).map(n => n.numero);
+    const ultimoNumero = numerosExistentes.length ? Math.max(...numerosExistentes.map(n => n.numero)) : 0;
+    
+    // Se novoTotal for menor que o atual, remover números não vendidos acima do limite
+    if (novoTotal < ultimoNumero) {
+      const remover = [];
+      for (let i = novoTotal+1; i <= ultimoNumero; i++) {
+        if (!vendidos.includes(i)) remover.push(i);
+      }
+      for (const num of remover) {
+        await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'DELETE' });
+      }
+    }
+    // Se novoTotal for maior, adicionar números faltantes
+    if (novoTotal > ultimoNumero) {
+      for (let i = ultimoNumero+1; i <= novoTotal; i++) {
+        await fetchSupabase('numeros', { method: 'POST', body: JSON.stringify({ numero: i, nome_comprador: null }) });
+      }
+    }
+    // Atualizar config.total_numeros
+    await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ total_numeros: novoTotal }) });
+    await registrarLog(`Alterou total de números para ${novoTotal}`);
+    await carregarNumeros();
+    mostrarMensagem('totalMensagem', `✅ Total atualizado para ${novoTotal} números.`, 'sucesso');
+  }
+
+  // ------------------ VENDAS (CRUD) ------------------
+  async function carregarVendas(filtro = '') {
+    let endpoint = 'vendas?order=data_venda.desc';
+    if (filtro) {
+      endpoint = `vendas?comprador=ilike.%25${encodeURIComponent(filtro)}%25&order=data_venda.desc`;
+    }
+    const vendas = await fetchSupabase(endpoint);
+    const tbody = document.getElementById('corpoVendas');
+    tbody.innerHTML = '';
+    for (const v of vendas) {
+      const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${v.id}`);
+      const listaNumeros = numerosVenda.map(n => n.numero).join(', ');
+      const row = tbody.insertRow();
+      row.insertCell(0).innerText = v.id;
+      row.insertCell(1).innerText = v.comprador;
+      row.insertCell(2).innerText = new Date(v.data_venda).toLocaleString();
+      row.insertCell(3).innerText = `${v.total_numeros} (${listaNumeros})`;
+      const acoes = row.insertCell(4);
+      const btnEditar = document.createElement('button');
+      btnEditar.innerText = 'Editar nome';
+      btnEditar.className = 'acao-btn btn-info';
+      btnEditar.onclick = () => editarVenda(v.id, v.comprador);
+      const btnExcluir = document.createElement('button');
+      btnExcluir.innerText = 'Excluir';
+      btnExcluir.className = 'acao-btn btn-danger';
+      btnExcluir.onclick = () => excluirVenda(v.id);
+      acoes.appendChild(btnEditar);
+      acoes.appendChild(btnExcluir);
+    }
+  }
+
+  async function editarVenda(vendaId, nomeAtual) {
+    const novoNome = prompt('Digite o novo nome do comprador:', nomeAtual);
+    if (!novoNome || novoNome === nomeAtual) return;
     try {
-      const data = await fetchSupabase('logs?order=data_hora.desc&limit=15');
-      const logsDiv = document.getElementById('logsLista');
-      if (data && data.length) {
-        logsDiv.innerHTML = data.map(l => `📌 ${new Date(l.data_hora).toLocaleString()} - ${l.acao} (${l.usuario})`).join('<br>');
-      } else logsDiv.innerHTML = 'Nenhum log.';
-    } catch(e) { console.error(e); }
+      // Atualizar na tabela vendas
+      await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ comprador: novoNome }) });
+      // Atualizar também na tabela numeros (todos os números dessa venda)
+      const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
+      for (const item of numerosVenda) {
+        await fetchSupabase(`numeros?numero=eq.${item.numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: novoNome }) });
+      }
+      await registrarLog(`Editou venda ${vendaId}: ${nomeAtual} → ${novoNome}`);
+      mostrarMensagem('vendaMensagem', '✅ Nome atualizado em todas as referências!', 'sucesso');
+      carregarVendas(); // recarregar lista
+      carregarNumeros(); // atualizar grade
+    } catch(e) { mostrarMensagem('vendaMensagem', 'Erro ao editar: ' + e.message, 'erro'); }
   }
 
+  async function excluirVenda(vendaId) {
+    if (!confirm('Excluir esta venda? Os números voltarão a ficar disponíveis.')) return;
+    try {
+      // Buscar os números da venda
+      const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
+      // Limpar os números na tabela numeros
+      for (const item of numerosVenda) {
+        await fetchSupabase(`numeros?numero=eq.${item.numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
+      }
+      // Excluir os itens da venda (on delete cascade cuida da venda_numeros)
+      await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'DELETE' });
+      await registrarLog(`Excluiu venda ${vendaId}`);
+      mostrarMensagem('vendaMensagem', '✅ Venda excluída e números liberados!', 'sucesso');
+      carregarVendas();
+      carregarNumeros();
+    } catch(e) { mostrarMensagem('vendaMensagem', 'Erro ao excluir: ' + e.message, 'erro'); }
+  }
+
+  // ------------------ VENDER MÚLTIPLOS ------------------
+  async function venderNumerosSelecionados(nomeComprador) {
+    const numeros = Array.from(numerosSelecionados);
+    if (numeros.length === 0) throw new Error('Nenhum número selecionado');
+    // Verificar se todos estão livres
+    for (const num of numeros) {
+      const encontrado = numerosAtuais.find(n => n.numero === num);
+      if (!encontrado || encontrado.nome_comprador) throw new Error(`Número ${num} já vendido!`);
+    }
+    // Criar venda
+    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/vendas`, {
+      method: 'POST', headers, body: JSON.stringify({
+        comprador: nomeComprador, data_venda: new Date(), total_numeros: numeros.length, usuario_admin: usuarioLogado?.usuario
+      })
+    });
+    if (!insertRes.ok) throw new Error('Erro ao registrar venda');
+    const location = insertRes.headers.get('location');
+    let vendaId = null;
+    if (location) {
+      const match = location.match(/vendas[?]id=eq.(\d+)/);
+      if (match) vendaId = match[1];
+    }
+    if (!vendaId) {
+      const ultimasVendas = await fetchSupabase(`vendas?usuario_admin=eq.${usuarioLogado.usuario}&order=id.desc&limit=1`);
+      if (ultimasVendas && ultimasVendas[0]) vendaId = ultimasVendas[0].id;
+      else throw new Error('Não foi possível identificar a venda');
+    }
+    // Inserir itens e atualizar números
+    for (const num of numeros) {
+      await fetchSupabase('venda_numeros', { method: 'POST', body: JSON.stringify({ venda_id: vendaId, numero: num }) });
+      await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nomeComprador, data_compra: new Date(), venda_id: vendaId }) });
+    }
+    numerosSelecionados.clear();
+    await carregarNumeros();
+    return numeros.length;
+  }
+
+  // ------------------ CARREGAR NÚMEROS E RENDERIZAR ------------------
   async function carregarNumeros() {
     try {
       const data = await fetchSupabase('numeros?order=numero.asc');
@@ -234,7 +402,6 @@
       div.className = 'numero-item';
       const isVendido = !!num.nome_comprador;
       const isSelecionado = numerosSelecionados.has(num.numero);
-      
       if (isVendido) {
         div.classList.add('numero-vendido');
         div.title = `Vendido para: ${num.nome_comprador}`;
@@ -246,21 +413,18 @@
         div.title = 'Clique para selecionar';
       }
       div.textContent = num.numero;
-      
       if (!isVendido) {
         div.onclick = () => {
-          if (numerosSelecionados.has(num.numero)) {
-            numerosSelecionados.delete(num.numero);
-          } else {
-            numerosSelecionados.add(num.numero);
-          }
-          renderizarNumeros(); // re-renderiza com as seleções
+          if (numerosSelecionados.has(num.numero)) numerosSelecionados.delete(num.numero);
+          else numerosSelecionados.add(num.numero);
+          renderizarNumeros();
         };
       }
       grid.appendChild(div);
     }
   }
 
+  // ------------------ CONFIGURAÇÕES ------------------
   async function carregarConfig() {
     try {
       const data = await fetchSupabase('config?id=eq.1');
@@ -276,80 +440,22 @@
     } catch(e) { console.error(e); }
   }
 
-  // Vender múltiplos números selecionados
-  async function venderNumerosSelecionados(nomeComprador) {
-    const numeros = Array.from(numerosSelecionados);
-    if (numeros.length === 0) throw new Error('Nenhum número selecionado');
-    
-    // 1. Verificar se todos estão livres
-    const livres = numeros.filter(num => {
-      const encontrado = numerosAtuais.find(n => n.numero === num);
-      return encontrado && !encontrado.nome_comprador;
-    });
-    if (livres.length !== numeros.length) {
-      const ocupados = numeros.filter(num => {
-        const encontrado = numerosAtuais.find(n => n.numero === num);
-        return encontrado && encontrado.nome_comprador;
-      });
-      throw new Error(`Números já vendidos: ${ocupados.join(', ')}`);
-    }
-    
-    // 2. Criar registro de venda
-    const { data: venda, error: vendaError } = await fetchSupabase('vendas', {
-      method: 'POST',
-      body: JSON.stringify({
-        comprador: nomeComprador,
-        data_venda: new Date(),
-        total_numeros: numeros.length,
-        usuario_admin: usuarioLogado?.usuario
-      })
-    });
-    // O retorno do POST pode não ser o objeto, então precisamos buscar o ID da venda recém-criada
-    // Melhor: primeiro inserir e depois buscar o último ID desse usuário. Vou fazer de forma mais direta:
-    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/vendas`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        comprador: nomeComprador,
-        data_venda: new Date(),
-        total_numeros: numeros.length,
-        usuario_admin: usuarioLogado?.usuario
-      })
-    });
-    if (!insertRes.ok) throw new Error('Erro ao registrar venda');
-    // Pegar o ID da venda (location header)
-    const location = insertRes.headers.get('location');
-    let vendaId = null;
-    if (location) {
-      const match = location.match(/vendas[?]id=eq.(\d+)/);
-      if (match) vendaId = match[1];
-    }
-    if (!vendaId) {
-      // Fallback: buscar a última venda do usuário
-      const ultimasVendas = await fetchSupabase(`vendas?usuario_admin=eq.${usuarioLogado.usuario}&order=id.desc&limit=1`);
-      if (ultimasVendas && ultimasVendas[0]) vendaId = ultimasVendas[0].id;
-      else throw new Error('Não foi possível identificar a venda');
-    }
-    
-    // 3. Inserir cada número na tabela venda_numeros e atualizar numeros
-    for (const num of numeros) {
-      await fetchSupabase('venda_numeros', {
-        method: 'POST',
-        body: JSON.stringify({ venda_id: vendaId, numero: num })
-      });
-      await fetchSupabase(`numeros?numero=eq.${num}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ nome_comprador: nomeComprador, data_compra: new Date(), venda_id: vendaId })
-      });
-    }
-    
-    // 4. Limpar seleção e recarregar
-    numerosSelecionados.clear();
-    await carregarNumeros();
-    return numeros.length;
+  // ------------------ LOGS ------------------
+  async function carregarLogs() {
+    try {
+      const data = await fetchSupabase('logs?order=data_hora.desc&limit=15');
+      const logsDiv = document.getElementById('logsLista');
+      logsDiv.innerHTML = data && data.length ? data.map(l => `📌 ${new Date(l.data_hora).toLocaleString()} - ${l.acao} (${l.usuario})`).join('<br>') : 'Nenhum log.';
+    } catch(e) { console.error(e); }
   }
 
-  // Eventos
+  // ------------------ LOGIN ------------------
+  async function fazerLogin(usuario, senha) {
+    const data = await fetchSupabase(`usuarios_admin?usuario=eq.${encodeURIComponent(usuario)}&senha=eq.${encodeURIComponent(senha)}`);
+    if (!data || data.length === 0) throw new Error('Usuário ou senha inválidos');
+    return data[0];
+  }
+
   document.getElementById('btnLogin').onclick = async () => {
     const usuario = document.getElementById('loginUsuario').value.trim();
     const senha = document.getElementById('loginSenha').value;
@@ -360,9 +466,11 @@
       document.getElementById('painelAdmin').style.display = 'block';
       document.getElementById('usuarioInfo').innerHTML = `✅ Logado: ${user.nome || user.usuario}`;
       await registrarLog('Login');
+      await carregarTotalNumeros();
       await carregarNumeros();
       await carregarConfig();
       await carregarLogs();
+      await carregarVendas();
     } catch(e) {
       mostrarMensagem('loginMensagem', e.message, 'erro');
     }
@@ -371,37 +479,43 @@
   document.getElementById('btnLogout').onclick = async () => {
     await registrarLog('Logout');
     usuarioLogado = null;
-    document.getElementById('telaLogin').style.display = 'block';
-    document.getElementById('painelAdmin').style.display = 'none';
+    location.reload();
   };
+
+  // Eventos do novo módulo
+  document.getElementById('btnAtualizarTotal').onclick = async () => {
+    const novoTotal = parseInt(document.getElementById('totalNumerosConfig').value);
+    if (isNaN(novoTotal)) return mostrarMensagem('totalMensagem', 'Digite um número válido', 'erro');
+    if (confirm(`Alterar total para ${novoTotal} números? Números não vendidos acima do limite serão removidos.`)) {
+      await atualizarTotalNumeros(novoTotal);
+    }
+  };
+
+  document.getElementById('btnPesquisarVenda').onclick = () => {
+    const filtro = document.getElementById('pesquisarComprador').value.trim();
+    carregarVendas(filtro);
+  };
+  document.getElementById('btnMostrarTodasVendas').onclick = () => carregarVendas('');
 
   document.getElementById('limparSelecaoBtn').onclick = () => {
     numerosSelecionados.clear();
     renderizarNumeros();
   };
-
   document.getElementById('venderSelecionadosBtn').onclick = async () => {
     const nome = document.getElementById('venderNome').value.trim();
-    if (!nome) {
-      mostrarMensagem('venderMensagem', 'Digite o nome do comprador', 'erro');
-      return;
-    }
-    if (numerosSelecionados.size === 0) {
-      mostrarMensagem('venderMensagem', 'Selecione pelo menos um número', 'erro');
-      return;
-    }
+    if (!nome) return mostrarMensagem('venderMensagem', 'Digite o nome do comprador', 'erro');
+    if (numerosSelecionados.size === 0) return mostrarMensagem('venderMensagem', 'Selecione pelo menos um número', 'erro');
     try {
       const qtd = await venderNumerosSelecionados(nome);
-      mostrarMensagem('venderMensagem', `✅ Venda realizada! ${qtd} números vendidos para ${nome}`, 'sucesso');
+      mostrarMensagem('venderMensagem', `✅ ${qtd} números vendidos para ${nome}`, 'sucesso');
       document.getElementById('venderNome').value = '';
       await registrarLog(`Vendeu ${qtd} números para ${nome} (${Array.from(numerosSelecionados).join(',')})`);
+      await carregarVendas();
       await carregarLogs();
-    } catch(e) {
-      mostrarMensagem('venderMensagem', e.message, 'erro');
-    }
+    } catch(e) { mostrarMensagem('venderMensagem', e.message, 'erro'); }
   };
 
-  // Demais funções (config, foto, ganhador, etc) permanecem iguais.
+  // Configurações, foto, ganhador, PDF (mesmo código anterior)
   document.getElementById('btnSalvarConfig').onclick = async () => {
     const titulo = document.getElementById('configTitulo').value;
     const chave = document.getElementById('configChavePix').value;
