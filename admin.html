@@ -92,6 +92,11 @@
     th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
     th { background: #f4ecf7; }
     .acao-btn { padding: 5px 10px; margin: 2px; font-size: 12px; }
+    .voltar-btn {
+      background: #6c3483;
+      margin-bottom: 15px;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
@@ -106,14 +111,14 @@
 
   <div id="painelAdmin" style="display: none;">
     <div class="card">
-      <div style="display: flex; justify-content: space-between;">
-        <h1>👑 Painel Admin - Rifa Online</h1>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <button id="btnVoltar" class="voltar-btn">← Voltar para a rifa</button>
         <button id="btnLogout" class="btn-danger">Sair</button>
       </div>
       <div id="usuarioInfo" class="info"></div>
     </div>
 
-    <!-- Seção de Configuração do Total de Números -->
+    <!-- Configurar total de números -->
     <div class="card">
       <h2>⚙️ Configurar total de números</h2>
       <div style="display: flex; gap: 10px; align-items: flex-end;">
@@ -143,7 +148,7 @@
       <div id="venderMensagem" class="mensagem"></div>
     </div>
 
-    <!-- Consulta/Edição/Exclusão de Vendas -->
+    <!-- Consultar/Editar/Excluir Vendas -->
     <div class="card">
       <h2>📋 Consultar vendas</h2>
       <div style="display: flex; gap: 10px;">
@@ -154,7 +159,7 @@
       <div id="vendasLista" style="max-height: 300px; overflow-y: auto;">
         <table id="tabelaVendas">
           <thead>
-            <tr><th>ID</th><th>Comprador</th><th>Data</th><th>Qtd</th><th>Ações</th></tr>
+            <tr><th>ID</th><th>Comprador</th><th>Data</th><th>Qtd / Números</th><th>Ações</th></tr>
           </thead>
           <tbody id="corpoVendas"></tbody>
         </table>
@@ -227,7 +232,6 @@
   let numerosAtuais = [];
   let numerosSelecionados = new Set();
 
-  // ------------------ FUNÇÕES GERAIS ------------------
   function mostrarMensagem(elId, texto, tipo) {
     const div = document.getElementById(elId);
     if (!div) return;
@@ -241,7 +245,7 @@
     await fetchSupabase('logs', { method: 'POST', body: JSON.stringify({ acao, usuario: usuarioLogado.usuario, data_hora: new Date() }) }).catch(e => console.error);
   }
 
-  // ------------------ GERENCIAR TOTAL DE NÚMEROS ------------------
+  // ------------------ TOTAL DE NÚMEROS ------------------
   async function carregarTotalNumeros() {
     const data = await fetchSupabase('config?id=eq.1');
     if (data && data[0]) {
@@ -252,28 +256,26 @@
 
   async function atualizarTotalNumeros(novoTotal) {
     if (novoTotal < 1 || novoTotal > 5000) throw new Error('Total deve ser entre 1 e 5000');
-    // Buscar números existentes
+    // Obter números existentes
     const numerosExistentes = await fetchSupabase('numeros?order=numero.asc');
     const vendidos = numerosExistentes.filter(n => n.nome_comprador).map(n => n.numero);
     const ultimoNumero = numerosExistentes.length ? Math.max(...numerosExistentes.map(n => n.numero)) : 0;
     
-    // Se novoTotal for menor que o atual, remover números não vendidos acima do limite
+    // Se reduzir, remover números não vendidos acima do novo limite
     if (novoTotal < ultimoNumero) {
-      const remover = [];
       for (let i = novoTotal+1; i <= ultimoNumero; i++) {
-        if (!vendidos.includes(i)) remover.push(i);
-      }
-      for (const num of remover) {
-        await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'DELETE' });
+        if (!vendidos.includes(i)) {
+          await fetchSupabase(`numeros?numero=eq.${i}`, { method: 'DELETE' });
+        }
       }
     }
-    // Se novoTotal for maior, adicionar números faltantes
+    // Se aumentar, adicionar números faltantes
     if (novoTotal > ultimoNumero) {
       for (let i = ultimoNumero+1; i <= novoTotal; i++) {
         await fetchSupabase('numeros', { method: 'POST', body: JSON.stringify({ numero: i, nome_comprador: null }) });
       }
     }
-    // Atualizar config.total_numeros
+    // Atualizar a configuração
     await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ total_numeros: novoTotal }) });
     await registrarLog(`Alterou total de números para ${novoTotal}`);
     await carregarNumeros();
@@ -315,48 +317,41 @@
     const novoNome = prompt('Digite o novo nome do comprador:', nomeAtual);
     if (!novoNome || novoNome === nomeAtual) return;
     try {
-      // Atualizar na tabela vendas
       await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ comprador: novoNome }) });
-      // Atualizar também na tabela numeros (todos os números dessa venda)
       const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
       for (const item of numerosVenda) {
         await fetchSupabase(`numeros?numero=eq.${item.numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: novoNome }) });
       }
       await registrarLog(`Editou venda ${vendaId}: ${nomeAtual} → ${novoNome}`);
-      mostrarMensagem('vendaMensagem', '✅ Nome atualizado em todas as referências!', 'sucesso');
-      carregarVendas(); // recarregar lista
-      carregarNumeros(); // atualizar grade
-    } catch(e) { mostrarMensagem('vendaMensagem', 'Erro ao editar: ' + e.message, 'erro'); }
+      mostrarMensagem('vendaMensagem', '✅ Nome atualizado!', 'sucesso');
+      carregarVendas();
+      carregarNumeros();
+    } catch(e) { mostrarMensagem('vendaMensagem', 'Erro: ' + e.message, 'erro'); }
   }
 
   async function excluirVenda(vendaId) {
     if (!confirm('Excluir esta venda? Os números voltarão a ficar disponíveis.')) return;
     try {
-      // Buscar os números da venda
       const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
-      // Limpar os números na tabela numeros
       for (const item of numerosVenda) {
         await fetchSupabase(`numeros?numero=eq.${item.numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
       }
-      // Excluir os itens da venda (on delete cascade cuida da venda_numeros)
       await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'DELETE' });
       await registrarLog(`Excluiu venda ${vendaId}`);
       mostrarMensagem('vendaMensagem', '✅ Venda excluída e números liberados!', 'sucesso');
       carregarVendas();
       carregarNumeros();
-    } catch(e) { mostrarMensagem('vendaMensagem', 'Erro ao excluir: ' + e.message, 'erro'); }
+    } catch(e) { mostrarMensagem('vendaMensagem', 'Erro: ' + e.message, 'erro'); }
   }
 
   // ------------------ VENDER MÚLTIPLOS ------------------
   async function venderNumerosSelecionados(nomeComprador) {
     const numeros = Array.from(numerosSelecionados);
     if (numeros.length === 0) throw new Error('Nenhum número selecionado');
-    // Verificar se todos estão livres
     for (const num of numeros) {
       const encontrado = numerosAtuais.find(n => n.numero === num);
       if (!encontrado || encontrado.nome_comprador) throw new Error(`Número ${num} já vendido!`);
     }
-    // Criar venda
     const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/vendas`, {
       method: 'POST', headers, body: JSON.stringify({
         comprador: nomeComprador, data_venda: new Date(), total_numeros: numeros.length, usuario_admin: usuarioLogado?.usuario
@@ -374,7 +369,6 @@
       if (ultimasVendas && ultimasVendas[0]) vendaId = ultimasVendas[0].id;
       else throw new Error('Não foi possível identificar a venda');
     }
-    // Inserir itens e atualizar números
     for (const num of numeros) {
       await fetchSupabase('venda_numeros', { method: 'POST', body: JSON.stringify({ venda_id: vendaId, numero: num }) });
       await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nomeComprador, data_compra: new Date(), venda_id: vendaId }) });
@@ -384,11 +378,13 @@
     return numeros.length;
   }
 
-  // ------------------ CARREGAR NÚMEROS E RENDERIZAR ------------------
+  // ------------------ CARREGAR NÚMEROS (respeitando total) ------------------
   async function carregarNumeros() {
     try {
+      const configData = await fetchSupabase('config?id=eq.1');
+      const total = configData && configData[0] ? configData[0].total_numeros : 1000;
       const data = await fetchSupabase('numeros?order=numero.asc');
-      numerosAtuais = data || [];
+      numerosAtuais = (data || []).filter(n => n.numero <= total);
       renderizarNumeros();
     } catch(e) { console.error(e); }
   }
@@ -424,7 +420,7 @@
     }
   }
 
-  // ------------------ CONFIGURAÇÕES ------------------
+  // ------------------ CONFIGURAÇÕES GERAIS ------------------
   async function carregarConfig() {
     try {
       const data = await fetchSupabase('config?id=eq.1');
@@ -440,7 +436,6 @@
     } catch(e) { console.error(e); }
   }
 
-  // ------------------ LOGS ------------------
   async function carregarLogs() {
     try {
       const data = await fetchSupabase('logs?order=data_hora.desc&limit=15');
@@ -482,12 +477,18 @@
     location.reload();
   };
 
-  // Eventos do novo módulo
+  // Botão Voltar
+  document.getElementById('btnVoltar').onclick = () => {
+    window.location.href = '/';  // ou o domínio principal
+  };
+
+  // Eventos dos novos botões
   document.getElementById('btnAtualizarTotal').onclick = async () => {
     const novoTotal = parseInt(document.getElementById('totalNumerosConfig').value);
     if (isNaN(novoTotal)) return mostrarMensagem('totalMensagem', 'Digite um número válido', 'erro');
     if (confirm(`Alterar total para ${novoTotal} números? Números não vendidos acima do limite serão removidos.`)) {
       await atualizarTotalNumeros(novoTotal);
+      await carregarNumeros();  // recarregar grade
     }
   };
 
@@ -515,7 +516,7 @@
     } catch(e) { mostrarMensagem('venderMensagem', e.message, 'erro'); }
   };
 
-  // Configurações, foto, ganhador, PDF (mesmo código anterior)
+  // Configurações, foto, ganhador, PDF, etc.
   document.getElementById('btnSalvarConfig').onclick = async () => {
     const titulo = document.getElementById('configTitulo').value;
     const chave = document.getElementById('configChavePix').value;
