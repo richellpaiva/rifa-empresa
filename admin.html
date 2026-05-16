@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>Admin - Rifa Azul</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -104,11 +104,54 @@
     canvas { max-width: 200px; max-height: 200px; }
     .estatisticas { flex: 1; }
     .valor-item { font-size: 18px; margin: 10px 0; }
+    
+    /* LOADING OVERLAY */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .loading-overlay.active { display: flex; }
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #90caf9;
+      border-top-color: #0d47a1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 15px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: white; font-size: 18px; }
+    
+    /* RESPONSIVO */
+    @media (max-width: 700px) {
+      .selecao-bar { flex-direction: column; align-items: stretch; }
+      .grafico-container { flex-direction: column; text-align: center; }
+      .card { padding: 15px; }
+      .numero-item { width: 45px; height: 45px; font-size: 12px; }
+      #vendasLista { overflow-x: auto; }
+      .tabelaVendas, .tabelaVendas th, .tabelaVendas td { font-size: 12px; padding: 6px; }
+      .btn-group { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+      button { padding: 8px 12px; font-size: 12px; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingTexto">Carregando...</div>
+</div>
+
 <div class="container">
   <div id="telaLogin" class="card login-box">
     <h1>🔐 Login Admin - Rifa Azul</h1>
@@ -179,15 +222,15 @@
 
     <div class="card">
       <h2>📋 Consultar vendas</h2>
-      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-        <input type="text" id="pesquisarComprador" placeholder="Pesquisar por nome do comprador" style="flex:2;">
-        <button id="btnPesquisarVenda" class="btn-info">Pesquisar</button>
-        <button id="btnMostrarTodasVendas" class="btn-info">Mostrar todas</button>
-        <button id="btnExportarPDF" class="btn-success">📄 Exportar PDF</button>
-        <button id="btnExportarExcel" class="btn-success">📊 Exportar Excel</button>
+      <div class="btn-group" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">
+        <input type="text" id="pesquisarComprador" placeholder="Pesquisar por nome" style="flex: 2; min-width: 120px;">
+        <button id="btnPesquisarVenda" class="btn-info">🔍 Pesquisar</button>
+        <button id="btnMostrarTodasVendas" class="btn-info">📋 Todas</button>
+        <button id="btnExportarPDF" class="btn-success">📄 PDF</button>
+        <button id="btnExportarExcel" class="btn-success">📊 Excel</button>
       </div>
-      <div id="vendasLista" style="max-height: 350px; overflow-y: auto;">
-        <table id="tabelaVendas">
+      <div style="overflow-x: auto;">
+        <table class="tabelaVendas" style="width: 100%; min-width: 600px;">
           <thead>
             <tr><th>Código</th><th>Comprador</th><th>Data</th><th>Qtd</th><th>Valor (R$)</th><th>Ações</th></tr>
           </thead>
@@ -261,6 +304,17 @@
   let numerosSelecionados = new Set();
   let valorPonto = 0;
   let chart = null;
+
+  function showLoading(text = 'Carregando...') {
+    const overlay = document.getElementById('loadingOverlay');
+    const texto = document.getElementById('loadingTexto');
+    if (texto) texto.innerText = text;
+    if (overlay) overlay.classList.add('active');
+  }
+  function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.classList.remove('active');
+  }
 
   function mostrarMensagem(elId, texto, tipo) {
     const div = document.getElementById(elId);
@@ -462,14 +516,6 @@
     return data[0];
   }
 
-  function exportarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.text('Relatório de Vendas', 20, 20);
-    // Implementação mais completa pode ser feita
-    alert('PDF gerado (versão simplificada)');
-  }
-
   function exportarExcel() {
     fetchSupabase('vendas?order=data_venda.desc').then(async vendas => {
       const dados = [];
@@ -485,10 +531,12 @@
     });
   }
 
+  // EVENTOS
   document.getElementById('btnLogin').onclick = async () => {
     const usuario = document.getElementById('loginUsuario').value.trim();
     const senha = document.getElementById('loginSenha').value;
     try {
+      showLoading('Verificando login...');
       const user = await fazerLogin(usuario, senha);
       usuarioLogado = user;
       document.getElementById('telaLogin').style.display = 'none';
@@ -501,33 +549,38 @@
       await carregarConfig();
       await carregarLogs();
       await carregarVendas();
-    } catch(e) { mostrarMensagem('loginMensagem', e.message, 'erro'); }
+      hideLoading();
+    } catch(e) { hideLoading(); mostrarMensagem('loginMensagem', e.message, 'erro'); }
   };
   document.getElementById('btnLogout').onclick = () => location.reload();
   document.getElementById('btnAtualizarTotal').onclick = async () => {
     const novoTotal = parseInt(document.getElementById('totalNumerosConfig').value);
     if (isNaN(novoTotal)) return mostrarMensagem('totalMensagem', 'Digite um número válido', 'erro');
     if (confirm(`Alterar total para ${novoTotal} números?`)) {
-      try { await atualizarTotalNumeros(novoTotal); await atualizarEstatisticas(); }
-      catch(e) { mostrarMensagem('totalMensagem', 'Erro: ' + e.message, 'erro'); }
+      showLoading(`Atualizando para ${novoTotal} números...`);
+      try { await atualizarTotalNumeros(novoTotal); await atualizarEstatisticas(); hideLoading(); }
+      catch(e) { hideLoading(); mostrarMensagem('totalMensagem', 'Erro: ' + e.message, 'erro'); }
     }
   };
   document.getElementById('btnSalvarValor').onclick = salvarValorPonto;
   document.getElementById('btnPesquisarVenda').onclick = () => carregarVendas(document.getElementById('pesquisarComprador').value.trim());
   document.getElementById('btnMostrarTodasVendas').onclick = () => carregarVendas('');
   document.getElementById('btnExportarExcel').onclick = exportarExcel;
+  document.getElementById('btnExportarPDF').onclick = () => alert('PDF gerado (função em desenvolvimento)');
   document.getElementById('limparSelecaoBtn').onclick = () => { numerosSelecionados.clear(); carregarNumeros(); };
   document.getElementById('venderSelecionadosBtn').onclick = async () => {
     const nome = document.getElementById('venderNome').value.trim();
     if (!nome) return mostrarMensagem('venderMensagem', 'Digite o nome do comprador', 'erro');
     if (numerosSelecionados.size === 0) return mostrarMensagem('venderMensagem', 'Selecione números', 'erro');
+    showLoading(`Registrando venda para ${nome}...`);
     try {
       const qtd = await venderNumerosSelecionados(nome);
+      hideLoading();
       mostrarMensagem('venderMensagem', `✅ ${qtd} números vendidos para ${nome}`, 'sucesso');
       document.getElementById('venderNome').value = '';
       await registrarLog(`Vendeu ${qtd} números para ${nome}`);
       await carregarVendas(); await carregarLogs(); await atualizarEstatisticas();
-    } catch(e) { mostrarMensagem('venderMensagem', e.message, 'erro'); }
+    } catch(e) { hideLoading(); mostrarMensagem('venderMensagem', e.message, 'erro'); }
   };
   document.getElementById('btnSalvarConfig').onclick = async () => {
     const titulo = document.getElementById('configTitulo').value, chave = document.getElementById('configChavePix').value, texto = document.getElementById('configTexto').value, dataSorteio = document.getElementById('configDataSorteio').value, whats = document.getElementById('configWhatsapp').value;
@@ -540,16 +593,18 @@
   document.getElementById('btnEnviarFoto').onclick = async () => {
     const file = document.getElementById('fotoArquivo').files[0];
     if (!file) return mostrarMensagem('fotoMensagem', 'Selecione uma foto', 'erro');
+    showLoading('Enviando foto...');
     try {
       const fileName = `${Date.now()}_${file.name}`;
       const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/brindes/${fileName}`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }, body: file });
       if (!uploadRes.ok) throw new Error();
       const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/brindes/${fileName}`;
       await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ foto_url: publicUrl }) });
+      hideLoading();
       mostrarMensagem('fotoMensagem', '✅ Foto enviada', 'sucesso');
       document.getElementById('fotoPreview').innerHTML = `<img src="${publicUrl}" style="max-width:150px; border-radius:20px;">`;
       await registrarLog('Enviou foto do brinde');
-    } catch(e) { mostrarMensagem('fotoMensagem', 'Erro no upload', 'erro'); }
+    } catch(e) { hideLoading(); mostrarMensagem('fotoMensagem', 'Erro no upload', 'erro'); }
   };
   document.getElementById('btnDefinirGanhador').onclick = async () => {
     const num = parseInt(document.getElementById('ganhadorNumero').value), nome = document.getElementById('ganhadorNome').value.trim();
