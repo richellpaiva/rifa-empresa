@@ -12,7 +12,7 @@
       min-height: 100vh;
       padding: 20px;
     }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { max-width: 1300px; margin: 0 auto; }
     .card {
       background: white;
       border-radius: 25px;
@@ -20,7 +20,7 @@
       margin-bottom: 25px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     }
-    h1, h2, h3 { color: #4a235a; }
+    h1, h2, h3 { color: #4a235a; margin-bottom: 15px; }
     input, textarea, select {
       width: 100%;
       padding: 12px;
@@ -38,6 +38,7 @@
       border-radius: 40px;
       cursor: pointer;
       transition: 0.2s;
+      font-size: 14px;
     }
     button:hover { background: #6c3483; transform: scale(1.02); }
     .btn-danger { background: #c0392b; }
@@ -59,7 +60,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      max-height: 400px;
+      max-height: 450px;
       overflow-y: auto;
       margin-top: 15px;
       padding: 10px;
@@ -78,7 +79,7 @@
       transition: 0.1s;
     }
     .numero-livre { background: #d2b4de; color: #4a235a; }
-    .numero-vendido { background: #4a235a; color: #f5eef8; cursor: not-allowed; opacity: 0.6; }
+    .numero-vendido { background: #4a235a; color: #f5eef8; cursor: not-allowed; opacity: 0.7; }
     .numero-selecionado { background: #f1c40f; color: #2c3e50; box-shadow: 0 0 0 2px #e67e22; transform: scale(0.98); }
     .info { background: #f4ecf7; padding: 15px; border-radius: 20px; margin: 15px 0; }
     .selecao-bar {
@@ -92,15 +93,13 @@
     th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
     th { background: #f4ecf7; }
     .acao-btn { padding: 5px 10px; margin: 2px; font-size: 12px; }
-    .voltar-btn {
-      background: #6c3483;
-      margin-bottom: 15px;
-      display: inline-block;
-    }
+    .voltar-link { display: inline-block; margin-bottom: 20px; text-decoration: none; background: #f4ecf7; padding: 8px 16px; border-radius: 30px; color: #4a235a; font-weight: bold; }
+    .voltar-link:hover { background: #d2b4de; }
   </style>
 </head>
 <body>
 <div class="container">
+  <!-- Tela de login -->
   <div id="telaLogin" class="card login-box">
     <h1>🔐 Login Admin - Rifa Online</h1>
     <input type="text" id="loginUsuario" placeholder="Usuário">
@@ -109,10 +108,16 @@
     <div id="loginMensagem" class="mensagem"></div>
   </div>
 
+  <!-- Painel admin (oculto até login) -->
   <div id="painelAdmin" style="display: none;">
+    <!-- Botão voltar -->
+    <div style="text-align: left; margin-bottom: 10px;">
+      <a href="index.html" class="voltar-link">← Voltar para o site da rifa</a>
+    </div>
+
     <div class="card">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <button id="btnVoltar" class="voltar-btn">← Voltar para a rifa</button>
+        <h1>👑 Painel Admin - Rifa Online</h1>
         <button id="btnLogout" class="btn-danger">Sair</button>
       </div>
       <div id="usuarioInfo" class="info"></div>
@@ -131,10 +136,10 @@
         </div>
       </div>
       <div id="totalMensagem" class="mensagem"></div>
-      <small>⚠️ Atenção: números já vendidos serão mantidos. Novos números serão adicionados. Números acima do novo total serão removidos (apenas se não vendidos).</small>
+      <small>⚠️ Números vendidos são mantidos. Números não vendidos acima do novo total serão removidos. Novos números são adicionados automaticamente.</small>
     </div>
 
-    <!-- Venda múltipla -->
+    <!-- Vender múltiplos números -->
     <div class="card">
       <div class="selecao-bar">
         <h2>➕ Vender múltiplos números</h2>
@@ -148,18 +153,18 @@
       <div id="venderMensagem" class="mensagem"></div>
     </div>
 
-    <!-- Consultar/Editar/Excluir Vendas -->
+    <!-- Consultar/Editar/Excluir vendas -->
     <div class="card">
       <h2>📋 Consultar vendas</h2>
-      <div style="display: flex; gap: 10px;">
+      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
         <input type="text" id="pesquisarComprador" placeholder="Pesquisar por nome do comprador" style="flex:2;">
         <button id="btnPesquisarVenda" class="btn-info">Pesquisar</button>
         <button id="btnMostrarTodasVendas" class="btn-info">Mostrar todas</button>
       </div>
-      <div id="vendasLista" style="max-height: 300px; overflow-y: auto;">
+      <div id="vendasLista" style="max-height: 350px; overflow-y: auto;">
         <table id="tabelaVendas">
           <thead>
-            <tr><th>ID</th><th>Comprador</th><th>Data</th><th>Qtd / Números</th><th>Ações</th></tr>
+            <tr><th>ID</th><th>Comprador</th><th>Data</th><th>Qtd (números)</th><th>Ações</th></tr>
           </thead>
           <tbody id="corpoVendas"></tbody>
         </table>
@@ -167,7 +172,7 @@
       <div id="vendaMensagem" class="mensagem"></div>
     </div>
 
-    <!-- Demais configurações -->
+    <!-- Configurações da rifa -->
     <div class="card">
       <h2>⚙️ Configurações da rifa</h2>
       <input type="text" id="configTitulo" placeholder="Título" value="Rifa Online">
@@ -175,14 +180,14 @@
       <textarea id="configTexto" rows="3" placeholder="Texto explicativo"></textarea>
       <input type="datetime-local" id="configDataSorteio">
       <input type="text" id="configWhatsapp" placeholder="Texto do WhatsApp">
-      <button id="btnSalvarConfig">💾 Salvar</button>
+      <button id="btnSalvarConfig">💾 Salvar configurações</button>
       <div id="configMensagem" class="mensagem"></div>
     </div>
 
     <div class="card">
       <h2>🖼️ Foto do brinde</h2>
       <input type="file" id="fotoArquivo" accept="image/*">
-      <button id="btnEnviarFoto">📤 Enviar</button>
+      <button id="btnEnviarFoto">📤 Enviar foto</button>
       <div id="fotoPreview"></div>
       <div id="fotoMensagem" class="mensagem"></div>
     </div>
@@ -198,10 +203,10 @@
     </div>
 
     <div class="card">
-      <h2>🔒 Controle</h2>
+      <h2>🔒 Controle da rifa</h2>
       <button id="btnEncerrar" class="btn-danger">Encerrar rifa</button>
       <button id="btnReabrir">Reabrir rifa</button>
-      <button id="btnPDF" class="btn-success">Gerar PDF</button>
+      <button id="btnPDF" class="btn-success">Gerar PDF dos compradores</button>
     </div>
 
     <div class="card">
@@ -212,6 +217,7 @@
 </div>
 
 <script>
+  // ---------- CONFIGURAÇÃO SUPABASE ----------
   const SUPABASE_URL = 'https://wrofweogvhgkocevlvdf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
 
@@ -232,6 +238,7 @@
   let numerosAtuais = [];
   let numerosSelecionados = new Set();
 
+  // ---------- FUNÇÕES AUXILIARES ----------
   function mostrarMensagem(elId, texto, tipo) {
     const div = document.getElementById(elId);
     if (!div) return;
@@ -245,7 +252,7 @@
     await fetchSupabase('logs', { method: 'POST', body: JSON.stringify({ acao, usuario: usuarioLogado.usuario, data_hora: new Date() }) }).catch(e => console.error);
   }
 
-  // ------------------ TOTAL DE NÚMEROS ------------------
+  // ---------- GERENCIAR TOTAL DE NÚMEROS ----------
   async function carregarTotalNumeros() {
     const data = await fetchSupabase('config?id=eq.1');
     if (data && data[0]) {
@@ -256,33 +263,33 @@
 
   async function atualizarTotalNumeros(novoTotal) {
     if (novoTotal < 1 || novoTotal > 5000) throw new Error('Total deve ser entre 1 e 5000');
-    // Obter números existentes
+    // Buscar números existentes
     const numerosExistentes = await fetchSupabase('numeros?order=numero.asc');
     const vendidos = numerosExistentes.filter(n => n.nome_comprador).map(n => n.numero);
     const ultimoNumero = numerosExistentes.length ? Math.max(...numerosExistentes.map(n => n.numero)) : 0;
-    
-    // Se reduzir, remover números não vendidos acima do novo limite
+
+    // Remover números não vendidos acima do novo total
     if (novoTotal < ultimoNumero) {
-      for (let i = novoTotal+1; i <= ultimoNumero; i++) {
+      for (let i = novoTotal + 1; i <= ultimoNumero; i++) {
         if (!vendidos.includes(i)) {
           await fetchSupabase(`numeros?numero=eq.${i}`, { method: 'DELETE' });
         }
       }
     }
-    // Se aumentar, adicionar números faltantes
+    // Adicionar números faltantes
     if (novoTotal > ultimoNumero) {
-      for (let i = ultimoNumero+1; i <= novoTotal; i++) {
+      for (let i = ultimoNumero + 1; i <= novoTotal; i++) {
         await fetchSupabase('numeros', { method: 'POST', body: JSON.stringify({ numero: i, nome_comprador: null }) });
       }
     }
-    // Atualizar a configuração
+    // Atualizar config.total_numeros
     await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ total_numeros: novoTotal }) });
     await registrarLog(`Alterou total de números para ${novoTotal}`);
     await carregarNumeros();
     mostrarMensagem('totalMensagem', `✅ Total atualizado para ${novoTotal} números.`, 'sucesso');
   }
 
-  // ------------------ VENDAS (CRUD) ------------------
+  // ---------- VENDAS (CRUD) ----------
   async function carregarVendas(filtro = '') {
     let endpoint = 'vendas?order=data_venda.desc';
     if (filtro) {
@@ -323,10 +330,12 @@
         await fetchSupabase(`numeros?numero=eq.${item.numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: novoNome }) });
       }
       await registrarLog(`Editou venda ${vendaId}: ${nomeAtual} → ${novoNome}`);
-      mostrarMensagem('vendaMensagem', '✅ Nome atualizado!', 'sucesso');
+      mostrarMensagem('vendaMensagem', '✅ Nome atualizado em todas as referências!', 'sucesso');
       carregarVendas();
       carregarNumeros();
-    } catch(e) { mostrarMensagem('vendaMensagem', 'Erro: ' + e.message, 'erro'); }
+    } catch (e) {
+      mostrarMensagem('vendaMensagem', 'Erro ao editar: ' + e.message, 'erro');
+    }
   }
 
   async function excluirVenda(vendaId) {
@@ -341,10 +350,12 @@
       mostrarMensagem('vendaMensagem', '✅ Venda excluída e números liberados!', 'sucesso');
       carregarVendas();
       carregarNumeros();
-    } catch(e) { mostrarMensagem('vendaMensagem', 'Erro: ' + e.message, 'erro'); }
+    } catch (e) {
+      mostrarMensagem('vendaMensagem', 'Erro ao excluir: ' + e.message, 'erro');
+    }
   }
 
-  // ------------------ VENDER MÚLTIPLOS ------------------
+  // ---------- VENDER MÚLTIPLOS NÚMEROS ----------
   async function venderNumerosSelecionados(nomeComprador) {
     const numeros = Array.from(numerosSelecionados);
     if (numeros.length === 0) throw new Error('Nenhum número selecionado');
@@ -352,9 +363,15 @@
       const encontrado = numerosAtuais.find(n => n.numero === num);
       if (!encontrado || encontrado.nome_comprador) throw new Error(`Número ${num} já vendido!`);
     }
+    // Criar venda
     const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/vendas`, {
-      method: 'POST', headers, body: JSON.stringify({
-        comprador: nomeComprador, data_venda: new Date(), total_numeros: numeros.length, usuario_admin: usuarioLogado?.usuario
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        comprador: nomeComprador,
+        data_venda: new Date(),
+        total_numeros: numeros.length,
+        usuario_admin: usuarioLogado?.usuario
       })
     });
     if (!insertRes.ok) throw new Error('Erro ao registrar venda');
@@ -369,24 +386,28 @@
       if (ultimasVendas && ultimasVendas[0]) vendaId = ultimasVendas[0].id;
       else throw new Error('Não foi possível identificar a venda');
     }
+    // Inserir itens e atualizar números
     for (const num of numeros) {
       await fetchSupabase('venda_numeros', { method: 'POST', body: JSON.stringify({ venda_id: vendaId, numero: num }) });
-      await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nomeComprador, data_compra: new Date(), venda_id: vendaId }) });
+      await fetchSupabase(`numeros?numero=eq.${num}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ nome_comprador: nomeComprador, data_compra: new Date(), venda_id: vendaId })
+      });
     }
     numerosSelecionados.clear();
     await carregarNumeros();
     return numeros.length;
   }
 
-  // ------------------ CARREGAR NÚMEROS (respeitando total) ------------------
+  // ---------- CARREGAR E RENDERIZAR NÚMEROS ----------
   async function carregarNumeros() {
     try {
-      const configData = await fetchSupabase('config?id=eq.1');
-      const total = configData && configData[0] ? configData[0].total_numeros : 1000;
       const data = await fetchSupabase('numeros?order=numero.asc');
-      numerosAtuais = (data || []).filter(n => n.numero <= total);
+      numerosAtuais = data || [];
       renderizarNumeros();
-    } catch(e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   function renderizarNumeros() {
@@ -420,7 +441,7 @@
     }
   }
 
-  // ------------------ CONFIGURAÇÕES GERAIS ------------------
+  // ---------- CONFIGURAÇÕES DA RIFA ----------
   async function carregarConfig() {
     try {
       const data = await fetchSupabase('config?id=eq.1');
@@ -430,21 +451,22 @@
         document.getElementById('configChavePix').value = c.chave_pix || '';
         document.getElementById('configTexto').value = c.texto_explicativo || '';
         document.getElementById('configWhatsapp').value = c.texto_compartilhamento || '';
-        if (c.data_sorteio) document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0,16);
+        if (c.data_sorteio) document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0, 16);
         if (c.foto_url) document.getElementById('fotoPreview').innerHTML = `<img src="${c.foto_url}" style="max-width:150px; border-radius:20px;">`;
       }
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
   }
 
+  // ---------- LOGS ----------
   async function carregarLogs() {
     try {
       const data = await fetchSupabase('logs?order=data_hora.desc&limit=15');
       const logsDiv = document.getElementById('logsLista');
       logsDiv.innerHTML = data && data.length ? data.map(l => `📌 ${new Date(l.data_hora).toLocaleString()} - ${l.acao} (${l.usuario})`).join('<br>') : 'Nenhum log.';
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
   }
 
-  // ------------------ LOGIN ------------------
+  // ---------- LOGIN ----------
   async function fazerLogin(usuario, senha) {
     const data = await fetchSupabase(`usuarios_admin?usuario=eq.${encodeURIComponent(usuario)}&senha=eq.${encodeURIComponent(senha)}`);
     if (!data || data.length === 0) throw new Error('Usuário ou senha inválidos');
@@ -459,14 +481,14 @@
       usuarioLogado = user;
       document.getElementById('telaLogin').style.display = 'none';
       document.getElementById('painelAdmin').style.display = 'block';
-      document.getElementById('usuarioInfo').innerHTML = `✅ Logado: ${user.nome || user.usuario}`;
+      document.getElementById('usuarioInfo').innerHTML = `✅ Logado como: ${user.nome || user.usuario}`;
       await registrarLog('Login');
       await carregarTotalNumeros();
       await carregarNumeros();
       await carregarConfig();
       await carregarLogs();
       await carregarVendas();
-    } catch(e) {
+    } catch (e) {
       mostrarMensagem('loginMensagem', e.message, 'erro');
     }
   };
@@ -477,18 +499,13 @@
     location.reload();
   };
 
-  // Botão Voltar
-  document.getElementById('btnVoltar').onclick = () => {
-    window.location.href = '/';  // ou o domínio principal
-  };
-
-  // Eventos dos novos botões
+  // ---------- EVENTOS DO PAINEL ----------
   document.getElementById('btnAtualizarTotal').onclick = async () => {
     const novoTotal = parseInt(document.getElementById('totalNumerosConfig').value);
     if (isNaN(novoTotal)) return mostrarMensagem('totalMensagem', 'Digite um número válido', 'erro');
     if (confirm(`Alterar total para ${novoTotal} números? Números não vendidos acima do limite serão removidos.`)) {
       await atualizarTotalNumeros(novoTotal);
-      await carregarNumeros();  // recarregar grade
+      await carregarVendas(); // atualiza lista de vendas (caso algum número vendido tenha sumido? mas não deve)
     }
   };
 
@@ -513,10 +530,11 @@
       await registrarLog(`Vendeu ${qtd} números para ${nome} (${Array.from(numerosSelecionados).join(',')})`);
       await carregarVendas();
       await carregarLogs();
-    } catch(e) { mostrarMensagem('venderMensagem', e.message, 'erro'); }
+    } catch (e) {
+      mostrarMensagem('venderMensagem', e.message, 'erro');
+    }
   };
 
-  // Configurações, foto, ganhador, PDF, etc.
   document.getElementById('btnSalvarConfig').onclick = async () => {
     const titulo = document.getElementById('configTitulo').value;
     const chave = document.getElementById('configChavePix').value;
@@ -527,7 +545,9 @@
       await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ titulo, chave_pix: chave, texto_explicativo: texto, data_sorteio: dataSorteio || null, texto_compartilhamento: whats }) });
       mostrarMensagem('configMensagem', '✅ Configurações salvas', 'sucesso');
       await registrarLog('Salvou configurações');
-    } catch(e) { mostrarMensagem('configMensagem', 'Erro ao salvar', 'erro'); }
+    } catch (e) {
+      mostrarMensagem('configMensagem', 'Erro ao salvar', 'erro');
+    }
   };
 
   document.getElementById('btnEnviarFoto').onclick = async () => {
@@ -544,7 +564,9 @@
       mostrarMensagem('fotoMensagem', '✅ Foto enviada', 'sucesso');
       document.getElementById('fotoPreview').innerHTML = `<img src="${publicUrl}" style="max-width:150px; border-radius:20px;">`;
       await registrarLog('Enviou foto do brinde');
-    } catch(e) { mostrarMensagem('fotoMensagem', 'Erro no upload', 'erro'); }
+    } catch (e) {
+      mostrarMensagem('fotoMensagem', 'Erro no upload', 'erro');
+    }
   };
 
   document.getElementById('btnDefinirGanhador').onclick = async () => {
@@ -566,7 +588,7 @@
     }
   };
   document.getElementById('btnReabrir').onclick = async () => {
-    if (confirm('Reabrir?')) {
+    if (confirm('Reabrir a rifa?')) {
       await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ rifa_encerrada: false, ganhador_nome: null, ganhador_numero: null }) });
       await registrarLog('Reabriu rifa');
       alert('Rifa reaberta');
@@ -578,7 +600,10 @@
     let html = '<html><head><meta charset="UTF-8"><title>Compradores</title></head><body><h1>Lista de compradores</h1><ul>';
     data.forEach(c => html += `<li>Número ${c.numero} - ${c.nome_comprador}</li>`);
     html += '</ul></body></html>';
-    const win = window.open(); win.document.write(html); win.document.close(); win.print();
+    const win = window.open();
+    win.document.write(html);
+    win.document.close();
+    win.print();
     await registrarLog('Gerou PDF');
   };
 </script>
