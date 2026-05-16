@@ -2,61 +2,48 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Rifa Online - Números dinâmicos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rifa Azul</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+      background: linear-gradient(135deg, #0d47a1 0%, #1976d2 100%);
       min-height: 100vh;
       padding: 20px;
     }
     .container {
       max-width: 1300px;
       margin: 0 auto;
-      background: rgba(255,255,255,0.96);
+      background: white;
       border-radius: 30px;
       padding: 25px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     }
-    h1, h2, h3 { color: #4a235a; }
-    .pix-area {
-      background: #f4ecf7;
+    h1, h2, h3 { color: #0d47a1; }
+    .pix-area, .brinde-area {
+      background: #e3f2fd;
       padding: 15px;
       border-radius: 20px;
       text-align: center;
       margin: 20px 0;
-      border: 1px solid #d2b4de;
-    }
-    .pix-area input {
-      width: 100%;
-      max-width: 350px;
-      padding: 12px;
-      font-size: 16px;
-      text-align: center;
-      border: 1px solid #c39bd3;
-      border-radius: 40px;
-      background: white;
     }
     button {
-      background: #8e44ad;
+      background: #1976d2;
       color: white;
       border: none;
-      padding: 10px 24px;
-      font-size: 16px;
+      padding: 10px 20px;
       border-radius: 40px;
       cursor: pointer;
       margin: 5px;
-      transition: 0.3s;
     }
-    button:hover { background: #6c3483; transform: scale(1.02); }
+    button:hover { background: #0d47a1; }
     .contador {
       text-align: center;
       font-size: 26px;
       font-weight: bold;
-      background: #d2b4de;
-      color: #4a235a;
+      background: #bbdefb;
+      color: #0d47a1;
       padding: 15px;
       border-radius: 50px;
       margin: 20px 0;
@@ -80,53 +67,16 @@
       font-weight: bold;
       border-radius: 16px;
       cursor: pointer;
-      transition: 0.2s;
-      font-size: 15px;
     }
-    .disponivel {
-      background: #d2b4de;
-      color: #4a235a;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    .disponivel:hover { background: #c39bd3; transform: scale(1.05); }
-    .ocupado {
-      background: #4a235a;
-      color: #f5eef8;
-      box-shadow: none;
-      cursor: not-allowed;
-      opacity: 0.85;
-    }
+    .disponivel { background: #90caf9; color: #0d47a1; }
+    .ocupado { background: #1565c0; color: white; cursor: not-allowed; }
     .texto-explicativo {
-      background: #f4ecf7;
+      background: #e3f2fd;
       padding: 18px;
       border-radius: 20px;
       margin: 20px 0;
-      line-height: 1.5;
-      border-left: 6px solid #8e44ad;
-      word-wrap: break-word;        /* CORREÇÃO 1: quebra texto longo */
-      white-space: normal;          /* CORREÇÃO 1: permite quebra */
-      overflow-wrap: break-word;    /* CORREÇÃO 1: quebra palavra longa */
+      word-wrap: break-word;
     }
-    .botoes-acao {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-      margin: 20px 0;
-    }
-    .admin-link { text-align: center; margin-top: 30px; }
-    .admin-link a { color: #8e44ad; text-decoration: none; font-weight: bold; font-size: 14px; }
-    .ganhador {
-      background: gold;
-      color: #4a235a;
-      text-align: center;
-      padding: 20px;
-      border-radius: 30px;
-      margin: 20px 0;
-      font-size: 22px;
-      font-weight: bold;
-    }
-    footer { text-align: center; margin-top: 20px; font-size: 12px; color: #8e44ad; }
     .modal {
       display: none;
       position: fixed;
@@ -147,23 +97,19 @@
       width: 400px;
       text-align: center;
     }
-    .modal-content input {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 40px;
-      border: 1px solid #d2b4de;
-    }
-    @media (max-width: 700px) {
-      .numero { width: 48px; height: 48px; font-size: 12px; }
-      .contador { font-size: 18px; }
+    .ganhador-screen {
+      text-align: center;
+      background: gold;
+      padding: 30px;
+      border-radius: 30px;
+      margin: 20px 0;
     }
   </style>
 </head>
 <body>
 <div class="container" id="app">
-  <h1 id="titulo">💜 Rifa Online</h1>
-  <div class="foto-brinde" id="fotoDiv"></div>
+  <h1 id="titulo">💙 Rifa Azul</h1>
+  <div class="brinde-area" id="brindeDiv"></div>
   <div class="pix-area" id="pixDiv"></div>
   <div class="contador" id="contadorDiv">⏳ Carregando...</div>
   <div class="texto-explicativo" id="textoDiv"></div>
@@ -171,8 +117,11 @@
     <button id="meusNumerosBtn">🔍 Meus números</button>
     <button id="whatsappBtn">📱 Compartilhar</button>
   </div>
-  <h3>🎟️ Números disponíveis (<span id="totalNumerosSpan"></span> disponíveis de <span id="totalConfigSpan"></span>)</h3>
-  <div class="numeros-grid" id="numerosGrid"></div>
+  <div id="numerosSection">
+    <h3>🎟️ Números disponíveis (<span id="totalNumerosSpan"></span> disponíveis de <span id="totalConfigSpan"></span>)</h3>
+    <div class="numeros-grid" id="numerosGrid"></div>
+  </div>
+  <div id="ganhadorSection" style="display: none;" class="ganhador-screen"></div>
   <div class="admin-link"><a href="admin.html">👑 Admin</a></div>
   <footer>Atualiza automática • Rifa online</footer>
 </div>
@@ -183,98 +132,47 @@
     <input type="text" id="buscaNome" placeholder="Digite parte do seu nome">
     <button id="confirmarBusca">Buscar</button>
     <button id="fecharBusca">Fechar</button>
-    <div id="resultadoBusca" style="margin-top: 15px;"></div>
+    <div id="resultadoBusca"></div>
   </div>
 </div>
 
 <script>
   const SUPABASE_URL = 'https://wrofweogvhgkocevlvdf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
-
   let configAtual = null;
   let numerosAtuais = [];
   let totalNumeros = 1000;
 
-  const headers = {
-    'apikey': SUPABASE_KEY,
-    'Authorization': `Bearer ${SUPABASE_KEY}`,
-    'Content-Type': 'application/json'
-  };
-
-  async function fetchSupabase(endpoint) {
-    const hdrs = { ...headers, 'Range-Unit': 'items', 'Range': '0-999' };
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, { headers: hdrs });
+  async function fetchAPI(endpoint) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Range-Unit': 'items', 'Range': '0-999' } });
     if (!res.ok) throw new Error(await res.text());
     const text = await res.text();
     return text ? JSON.parse(text) : null;
   }
 
   async function carregarConfig() {
-    try {
-      const data = await fetchSupabase('config?id=eq.1');
-      if (data && data[0]) {
-        configAtual = data[0];
-        totalNumeros = configAtual.total_numeros || 1000;
-        document.getElementById('totalConfigSpan').innerText = totalNumeros;
+    const data = await fetchAPI('config?id=eq.1');
+    if (data && data[0]) {
+      configAtual = data[0];
+      totalNumeros = configAtual.total_numeros || 1000;
+      document.getElementById('totalConfigSpan').innerText = totalNumeros;
+      // Exibir brinde
+      if (configAtual.foto_url) document.getElementById('brindeDiv').innerHTML = `<img src="${configAtual.foto_url}" style="max-width:100%; max-height:250px; border-radius:20px;">`;
+      // Exibir PIX
+      if (configAtual.chave_pix) {
+        document.getElementById('pixDiv').innerHTML = `<h3>💰 Chave PIX</h3><input id="chavePixInput" value="${configAtual.chave_pix}" readonly><button id="copiarPixBtn">Copiar</button>`;
+        document.getElementById('copiarPixBtn')?.addEventListener('click', () => { document.getElementById('chavePixInput').select(); document.execCommand('copy'); alert('Copiado!'); });
       }
-    } catch(e) { console.error(e); }
+      document.getElementById('textoDiv').innerHTML = configAtual.texto_explicativo || '';
+      document.getElementById('titulo').textContent = configAtual.titulo || '💙 Rifa Azul';
+    }
   }
 
   async function carregarNumeros() {
-    try {
-      const data = await fetchSupabase('numeros?order=numero.asc');
-      // Filtrar apenas números até o total definido
-      const todosNumeros = data || [];
-      numerosAtuais = todosNumeros.filter(n => n.numero <= totalNumeros);
-      
-      // CORREÇÃO 2: calcular disponíveis (total configurado - vendidos dentro da faixa)
-      const vendidos = numerosAtuais.filter(n => n.nome_comprador).length;
-      const disponiveis = totalNumeros - vendidos;
-      document.getElementById('totalNumerosSpan').innerText = disponiveis;
-      
-      atualizarInterface();
-    } catch(e) { 
-      document.getElementById('numerosGrid').innerHTML = '<p style="color:red">Erro ao carregar números</p>';
-    }
-  }
-
-  function atualizarInterface() {
-    if (configAtual) {
-      document.getElementById('titulo').textContent = configAtual.titulo || '💜 Rifa Online';
-      const fotoDiv = document.getElementById('fotoDiv');
-      if (configAtual.foto_url) fotoDiv.innerHTML = `<img src="${configAtual.foto_url}" style="max-width:100%; max-height:250px; border-radius:20px;">`;
-      else fotoDiv.innerHTML = '';
-      const pixDiv = document.getElementById('pixDiv');
-      if (configAtual.chave_pix) {
-        pixDiv.innerHTML = `
-          <h3>💰 Chave PIX</h3>
-          <input type="text" id="chavePixInput" value="${configAtual.chave_pix}" readonly>
-          <br><br>
-          <button id="copiarPixBtn">📋 Copiar chave PIX</button>
-        `;
-        const copiarBtn = document.getElementById('copiarPixBtn');
-        if (copiarBtn) copiarBtn.onclick = () => {
-          const input = document.getElementById('chavePixInput');
-          input.select();
-          document.execCommand('copy');
-          alert('✅ Chave PIX copiada!');
-        };
-      } else pixDiv.innerHTML = '';
-      document.getElementById('textoDiv').innerHTML = configAtual.texto_explicativo || '';
-      const contadorDiv = document.getElementById('contadorDiv');
-      if (configAtual.ganhador_nome) {
-        contadorDiv.innerHTML = `🎉 PARABÉNS, ${configAtual.ganhador_nome}! 🎉<br>Número: ${configAtual.ganhador_numero}`;
-        contadorDiv.style.background = 'gold';
-        contadorDiv.style.color = '#4a235a';
-      } else if (configAtual.rifa_encerrada) {
-        contadorDiv.innerHTML = '🔒 RIFA ENCERRADA 🔒';
-      } else if (configAtual.data_sorteio) {
-        atualizarContador(configAtual.data_sorteio);
-        setInterval(() => atualizarContador(configAtual.data_sorteio), 1000);
-      } else {
-        contadorDiv.innerHTML = '📅 Data do sorteio não definida';
-      }
-    }
+    const data = await fetchAPI('numeros?order=numero.asc');
+    numerosAtuais = (data || []).filter(n => n.numero <= totalNumeros);
+    const vendidos = numerosAtuais.filter(n => n.nome_comprador).length;
+    document.getElementById('totalNumerosSpan').innerText = totalNumeros - vendidos;
     const grid = document.getElementById('numerosGrid');
     grid.innerHTML = '';
     for (const num of numerosAtuais) {
@@ -283,58 +181,53 @@
       div.textContent = num.numero;
       if (num.nome_comprador) {
         div.title = `Comprador: ${num.nome_comprador}`;
-        div.onclick = () => alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}`);
-      } else {
-        div.title = 'Número disponível';
+        div.onclick = async () => {
+          const vendaData = await fetchAPI(`vendas?order=id.desc&limit=100`);
+          const venda = vendaData?.find(v => {
+            return fetchAPI(`venda_numeros?select=numero&venda_id=eq.${v.id}`).then(nums => nums.some(n => n.numero === num.numero));
+          });
+          if (venda) alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}\nCódigo da venda: #${venda.id}\nData: ${new Date(venda.data_venda).toLocaleString()}`);
+          else alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}`);
+        };
       }
       grid.appendChild(div);
     }
   }
 
-  function atualizarContador(dataSorteio) {
-    const alvo = new Date(dataSorteio).getTime();
-    const agora = new Date().getTime();
-    const diff = alvo - agora;
-    const contadorDiv = document.getElementById('contadorDiv');
-    if (diff <= 0) {
-      contadorDiv.innerHTML = '🎲 SORTEIO REALIZADO! 🎲';
-      return;
+  function atualizarContador() {
+    if (!configAtual?.data_sorteio) return;
+    const diff = new Date(configAtual.data_sorteio).getTime() - new Date().getTime();
+    const contDiv = document.getElementById('contadorDiv');
+    if (diff <= 0 && !configAtual.ganhador_nome && !configAtual.rifa_encerrada) {
+      contDiv.innerHTML = '⏳ Aguardando registro do ganhador...';
+      document.getElementById('numerosSection').style.display = 'none';
+      document.getElementById('ganhadorSection').style.display = 'block';
+      document.getElementById('ganhadorSection').innerHTML = `<h2>🎁 Sorteio realizado!</h2><div class="brinde-area"><img src="${configAtual.foto_url || ''}" style="max-width:200px"><p>Brinde: ${configAtual.titulo}</p><p>⏳ Aguardando o administrador definir o ganhador...</p></div>`;
+    } else if (configAtual.ganhador_nome) {
+      contDiv.innerHTML = `🎉 GANHADOR: ${configAtual.ganhador_nome} - Número ${configAtual.ganhador_numero} 🎉`;
+      document.getElementById('numerosSection').style.display = 'none';
+      document.getElementById('ganhadorSection').style.display = 'block';
+      document.getElementById('ganhadorSection').innerHTML = `<h2>🏆 GANHADOR DEFINIDO 🏆</h2><div class="brinde-area"><img src="${configAtual.foto_url || ''}" style="max-width:250px"><p><strong>Brinde:</strong> ${configAtual.titulo}</p><p><strong>Número sorteado:</strong> ${configAtual.ganhador_numero}</p><p><strong>Ganhador:</strong> ${configAtual.ganhador_nome}</p></div>`;
+    } else if (!configAtual.rifa_encerrada && diff > 0) {
+      const dias = Math.floor(diff / 86400000), horas = Math.floor((diff % 86400000) / 3600000), minutos = Math.floor((diff % 3600000) / 60000), seg = Math.floor((diff % 60000) / 1000);
+      contDiv.innerHTML = `⏰ SORTEIO EM:<br>${dias}d ${horas}h ${minutos}m ${seg}s`;
+      document.getElementById('numerosSection').style.display = 'block';
+      document.getElementById('ganhadorSection').style.display = 'none';
     }
-    const dias = Math.floor(diff / (1000*60*60*24));
-    const horas = Math.floor((diff % (86400000)) / 3600000);
-    const minutos = Math.floor((diff % 3600000) / 60000);
-    const segundos = Math.floor((diff % 60000) / 1000);
-    contadorDiv.innerHTML = `⏰ SORTEIO EM:<br>${dias}d ${horas}h ${minutos}m ${segundos}s`;
   }
 
-  // Busca parcial
   document.getElementById('meusNumerosBtn').onclick = () => document.getElementById('modalBusca').style.display = 'flex';
-  document.getElementById('fecharBusca').onclick = () => {
-    document.getElementById('modalBusca').style.display = 'none';
-    document.getElementById('resultadoBusca').innerHTML = '';
-    document.getElementById('buscaNome').value = '';
-  };
+  document.getElementById('fecharBusca').onclick = () => { document.getElementById('modalBusca').style.display = 'none'; document.getElementById('resultadoBusca').innerHTML = ''; };
   document.getElementById('confirmarBusca').onclick = async () => {
     const nome = document.getElementById('buscaNome').value.trim();
-    if (!nome) { alert('Digite parte do seu nome'); return; }
-    try {
-      const endpoint = `numeros?select=numero&nome_comprador=ilike.%25${encodeURIComponent(nome)}%25`;
-      const data = await fetchSupabase(endpoint);
-      const resultadoDiv = document.getElementById('resultadoBusca');
-      if (!data || data.length === 0) {
-        resultadoDiv.innerHTML = '❌ Nenhum número encontrado com esse nome.';
-      } else {
-        const nums = data.map(n => n.numero).sort((a,b)=>a-b);
-        resultadoDiv.innerHTML = `✅ Seus números: ${nums.join(', ')}`;
-      }
-    } catch(e) {
-      resultadoDiv.innerHTML = 'Erro na busca';
-      console.error(e);
-    }
+    if (!nome) return alert('Digite parte do nome');
+    const data = await fetchAPI(`numeros?select=numero&nome_comprador=ilike.%25${encodeURIComponent(nome)}%25`);
+    const resultadoDiv = document.getElementById('resultadoBusca');
+    if (!data.length) resultadoDiv.innerHTML = '❌ Nenhum número encontrado.';
+    else resultadoDiv.innerHTML = `✅ Seus números: ${data.map(n => n.numero).sort((a,b)=>a-b).join(', ')}`;
   };
-
   document.getElementById('whatsappBtn').onclick = () => {
-    let texto = configAtual?.texto_compartilhamento || 'Participe da rifa online! 🎟️';
+    let texto = configAtual?.texto_compartilhamento || 'Participe da rifa online!';
     texto += `\n\nLink: ${window.location.href}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
   };
@@ -342,10 +235,7 @@
   async function iniciar() {
     await carregarConfig();
     await carregarNumeros();
-    setInterval(async () => {
-      await carregarConfig();
-      await carregarNumeros();
-    }, 8000);
+    setInterval(async () => { await carregarConfig(); await carregarNumeros(); atualizarContador(); }, 5000);
   }
   iniciar();
 </script>
