@@ -79,8 +79,8 @@
 <div class="container">
   <div id="telaLogin" class="card login-box">
     <h1>🔐 Login Admin - Rifa Online</h1>
-    <input type="text" id="loginUsername" placeholder="Usuário">
-    <input type="password" id="loginPassword" placeholder="Senha">
+    <input type="text" id="loginUsuario" placeholder="Usuário">
+    <input type="password" id="loginSenha" placeholder="Senha">
     <button id="btnLogin">Entrar</button>
     <div id="loginMensagem" class="mensagem"></div>
   </div>
@@ -176,8 +176,9 @@
     setTimeout(() => { div.className = 'mensagem'; div.textContent = ''; }, 3000);
   }
 
-  async function fazerLogin(username, password) {
-    const data = await fetchSupabase(`usuarios_admin?username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}`);
+  // LOGIN CORRIGIDO usando as colunas "usuario" e "senha"
+  async function fazerLogin(usuario, senha) {
+    const data = await fetchSupabase(`usuarios_admin?usuario=eq.${encodeURIComponent(usuario)}&senha=eq.${encodeURIComponent(senha)}`);
     if (!data || data.length === 0) throw new Error('Usuário ou senha inválidos');
     return data[0];
   }
@@ -186,7 +187,7 @@
     if (!usuarioLogado) return;
     await fetchSupabase('logs', {
       method: 'POST',
-      body: JSON.stringify({ acao, usuario: usuarioLogado.username, data_hora: new Date() })
+      body: JSON.stringify({ acao, usuario: usuarioLogado.usuario, data_hora: new Date() })
     }).catch(e => console.error);
   }
 
@@ -230,16 +231,16 @@
     } catch(e) { console.error(e); }
   }
 
-  // Eventos
+  // EVENTOS
   document.getElementById('btnLogin').onclick = async () => {
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value;
+    const usuario = document.getElementById('loginUsuario').value.trim();
+    const senha = document.getElementById('loginSenha').value;
     try {
-      const user = await fazerLogin(username, password);
+      const user = await fazerLogin(usuario, senha);
       usuarioLogado = user;
       document.getElementById('telaLogin').style.display = 'none';
       document.getElementById('painelAdmin').style.display = 'block';
-      document.getElementById('usuarioInfo').innerHTML = `✅ Logado: ${user.nome || user.username}`;
+      document.getElementById('usuarioInfo').innerHTML = `✅ Logado: ${user.nome || user.usuario}`;
       await registrarLog('Login');
       await carregarNumeros();
       await carregarConfig();
