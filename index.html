@@ -2,328 +2,337 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Rifa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Rifa Lilás - 1000 números</title>
   <style>
-    * { box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
-      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+      min-height: 100vh;
       padding: 20px;
-      background: #1a1a2e;
     }
     .container {
-      max-width: 800px;
+      max-width: 1300px;
       margin: 0 auto;
-      background: white;
-      border-radius: 10px;
-      padding: 20px;
+      background: rgba(255,255,255,0.96);
+      border-radius: 30px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     }
-    h1, h2 { color: #1a1a2e; }
-    input, textarea, select {
+    h1, h2, h3 { color: #4a235a; }
+    .pix-area {
+      background: #f4ecf7;
+      padding: 15px;
+      border-radius: 20px;
+      text-align: center;
+      margin: 20px 0;
+      border: 1px solid #d2b4de;
+    }
+    .pix-area input {
       width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      max-width: 350px;
+      padding: 12px;
+      font-size: 16px;
+      text-align: center;
+      border: 1px solid #c39bd3;
+      border-radius: 40px;
+      background: white;
     }
     button {
-      background: #0088cc;
+      background: #8e44ad;
       color: white;
       border: none;
-      padding: 10px 20px;
-      margin: 5px;
-      border-radius: 5px;
+      padding: 10px 24px;
+      font-size: 16px;
+      border-radius: 40px;
       cursor: pointer;
+      margin: 5px;
+      transition: 0.3s;
     }
-    button:hover { background: #006699; }
-    .btn-danger { background: #dc3545; }
-    .btn-danger:hover { background: #c82333; }
-    .btn-success { background: #28a745; }
-    .btn-success:hover { background: #218838; }
-    .card {
-      background: #f8f9fa;
-      padding: 15px;
-      margin: 15px 0;
-      border-radius: 8px;
-      border-left: 4px solid #0088cc;
-    }
-    .login-area {
+    button:hover { background: #6c3483; transform: scale(1.02); }
+    .contador {
       text-align: center;
-      padding: 40px;
+      font-size: 26px;
+      font-weight: bold;
+      background: #d2b4de;
+      color: #4a235a;
+      padding: 15px;
+      border-radius: 50px;
+      margin: 20px 0;
     }
-    .status {
-      background: #e9ecef;
+    .numeros-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin: 20px 0;
+      max-height: 650px;
+      overflow-y: auto;
       padding: 10px;
-      border-radius: 5px;
-      margin: 10px 0;
     }
-    .erro { color: red; }
-    .sucesso { color: green; }
+    .numero {
+      width: 65px;
+      height: 65px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+      font-size: 15px;
+    }
+    /* Disponível: lilás claro */
+    .disponivel {
+      background: #d2b4de;
+      color: #4a235a;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .disponivel:hover { background: #c39bd3; transform: scale(1.05); }
+    /* Vendido: lilás escuro (bem escuro) */
+    .ocupado {
+      background: #4a235a;
+      color: #f5eef8;
+      box-shadow: none;
+      cursor: not-allowed;
+      opacity: 0.85;
+    }
+    .texto-explicativo {
+      background: #f4ecf7;
+      padding: 18px;
+      border-radius: 20px;
+      margin: 20px 0;
+      line-height: 1.5;
+      border-left: 6px solid #8e44ad;
+    }
+    .botoes-acao {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .admin-link { text-align: center; margin-top: 30px; }
+    .admin-link a { color: #8e44ad; text-decoration: none; font-weight: bold; font-size: 14px; }
+    .ganhador {
+      background: gold;
+      color: #4a235a;
+      text-align: center;
+      padding: 20px;
+      border-radius: 30px;
+      margin: 20px 0;
+      font-size: 22px;
+      font-weight: bold;
+    }
+    footer { text-align: center; margin-top: 20px; font-size: 12px; color: #8e44ad; }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 25px;
+      max-width: 90%;
+      width: 400px;
+      text-align: center;
+    }
+    .modal-content input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 40px;
+      border: 1px solid #d2b4de;
+    }
+    @media (max-width: 700px) {
+      .numero { width: 48px; height: 48px; font-size: 12px; }
+      .contador { font-size: 18px; }
+    }
   </style>
 </head>
 <body>
 <div class="container" id="app">
-  <div id="loginPanel">
-    <h1>🔐 Login Admin</h1>
-    <div class="login-area">
-      <input type="text" id="loginUsuario" placeholder="Usuário (Richell, Erika ou Adriana)">
-      <input type="password" id="loginSenha" placeholder="Senha">
-      <button id="loginBtn">Entrar</button>
-      <div id="loginMsg" style="margin-top:10px;"></div>
-    </div>
+  <h1 id="titulo">💜 Rifa Lilás</h1>
+  <div class="foto-brinde" id="fotoDiv"></div>
+  <div class="pix-area" id="pixDiv"></div>
+  <div class="contador" id="contadorDiv">⏳ Carregando...</div>
+  <div class="texto-explicativo" id="textoDiv"></div>
+  <div class="botoes-acao">
+    <button id="meusNumerosBtn">🔍 Meus números</button>
+    <button id="whatsappBtn">📱 Compartilhar</button>
   </div>
+  <h3>🎟️ Números disponíveis (1 a 1000)</h3>
+  <div class="numeros-grid" id="numerosGrid"></div>
+  <div class="admin-link"><a href="admin.html">👑 Admin</a></div>
+  <footer>Atualiza automática • Rifa online</footer>
+</div>
 
-  <div id="adminPanel" style="display:none;">
-    <h1>👑 Painel Administrativo</h1>
-    <div id="usuarioLogado" style="background:#e9ecef; padding:10px; border-radius:5px; margin-bottom:15px;"></div>
-    
-    <div class="card">
-      <h3>➕ Adicionar comprador</h3>
-      <input type="number" id="numeroCompra" placeholder="Número (1 a 100)">
-      <input type="text" id="nomeCompra" placeholder="Nome completo">
-      <button id="adicionarCompradorBtn">Adicionar / Vender</button>
-      <div id="compraMsg"></div>
-    </div>
-
-    <div class="card">
-      <h3>⚙️ Configurações da Rifa</h3>
-      <input type="text" id="configTitulo" placeholder="Título da rifa">
-      <input type="text" id="configChavePix" placeholder="Chave PIX">
-      <textarea id="configTextoExplicativo" rows="3" placeholder="Texto explicativo"></textarea>
-      <input type="datetime-local" id="configDataSorteio">
-      <input type="text" id="configTextoWhatsapp" placeholder="Texto para compartilhar no WhatsApp">
-      <button id="salvarConfigBtn">💾 Salvar configurações</button>
-    </div>
-
-    <div class="card">
-      <h3>🖼️ Foto do brinde</h3>
-      <input type="file" id="uploadFoto" accept="image/*">
-      <button id="uploadFotoBtn">📤 Enviar foto</button>
-      <div id="fotoMsg"></div>
-    </div>
-
-    <div class="card">
-      <h3>🏆 Definir ganhador</h3>
-      <input type="number" id="ganhadorNumero" placeholder="Número sorteado">
-      <input type="text" id="ganhadorNome" placeholder="Nome do ganhador">
-      <button id="definirGanhadorBtn">🎉 Definir ganhador</button>
-    </div>
-
-    <div class="card">
-      <h3>🔒 Encerrar rifa</h3>
-      <button id="encerrarRifaBtn" class="btn-danger">🚫 Encerrar rifa</button>
-      <button id="reabrirRifaBtn" class="btn-success">🔄 Reabrir rifa</button>
-    </div>
-
-    <div class="card">
-      <h3>📄 Gerar relatório</h3>
-      <button id="gerarPDFBtn">📑 Gerar PDF dos compradores</button>
-    </div>
-
-    <div class="card">
-      <h3>📝 Últimos logs</h3>
-      <div id="logsArea" style="font-size:12px; max-height:200px; overflow-y:auto;"></div>
-    </div>
-
-    <button id="logoutBtn" class="btn-danger">🚪 Sair</button>
+<!-- Modal de busca -->
+<div id="modalBusca" class="modal">
+  <div class="modal-content">
+    <h3>🔍 Buscar meus números</h3>
+    <input type="text" id="buscaNome" placeholder="Digite seu nome completo">
+    <button id="confirmarBusca">Buscar</button>
+    <button id="fecharBusca">Fechar</button>
+    <div id="resultadoBusca" style="margin-top: 15px;"></div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = 'https://wrofweogvhgkocevlvdf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
-  
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  let usuarioAtual = null;
 
-  // Função para verificar login na tabela usuarios_admin
-  async function fazerLogin(usuario, senha) {
-    const { data, error } = await supabase
-      .from('usuarios_admin')
-      .select('*')
-      .eq('usuario', usuario)
-      .eq('senha', senha);
-    
-    if (error) throw new Error(error.message);
-    if (!data || data.length === 0) throw new Error('Usuário ou senha inválidos');
-    return data[0];
+  let configAtual = null;
+  let numerosAtuais = [];
+
+  // headers
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json'
+  };
+
+  async function fetchSupabase(endpoint) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, { headers });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
   }
 
-  async function registrarLog(acao) {
-    await supabase.from('logs').insert({ acao: acao, usuario: usuarioAtual?.usuario || 'admin' });
+  async function carregarConfig() {
+    try {
+      const data = await fetchSupabase('config?id=eq.1');
+      configAtual = data?.[0] || null;
+    } catch(e) { console.error(e); }
   }
 
-  async function carregarLogs() {
-    const { data } = await supabase.from('logs').select('*').order('data_hora', { ascending: false }).limit(10);
-    if (data) {
-      const logsDiv = document.getElementById('logsArea');
-      logsDiv.innerHTML = data.map(l => `📌 ${new Date(l.data_hora).toLocaleString()} - ${l.acao} (${l.usuario})`).join('<br>');
+  async function carregarNumeros() {
+    try {
+      const data = await fetchSupabase('numeros?order=numero.asc');
+      numerosAtuais = data || [];
+      atualizarInterface();
+    } catch(e) { 
+      document.getElementById('numerosGrid').innerHTML = '<p style="color:red">Erro ao carregar números</p>';
     }
   }
 
-  async function carregarConfigAdmin() {
-    const { data } = await supabase.from('config').select('*').eq('id', 1);
-    if (data && data[0]) {
-      const c = data[0];
-      document.getElementById('configTitulo').value = c.titulo || '';
-      document.getElementById('configChavePix').value = c.chave_pix || '';
-      document.getElementById('configTextoExplicativo').value = c.texto_explicativo || '';
-      if (c.data_sorteio) document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0,16);
-      document.getElementById('configTextoWhatsapp').value = c.texto_compartilhamento || '';
+  function atualizarInterface() {
+    if (configAtual) {
+      document.getElementById('titulo').textContent = configAtual.titulo || '💜 Rifa Lilás';
+      // Foto
+      const fotoDiv = document.getElementById('fotoDiv');
+      if (configAtual.foto_url) fotoDiv.innerHTML = `<img src="${configAtual.foto_url}" style="max-width:100%; max-height:250px; border-radius:20px;">`;
+      else fotoDiv.innerHTML = '';
+      // PIX
+      const pixDiv = document.getElementById('pixDiv');
+      if (configAtual.chave_pix) {
+        pixDiv.innerHTML = `
+          <h3>💰 Chave PIX</h3>
+          <input type="text" id="chavePixInput" value="${configAtual.chave_pix}" readonly>
+          <br><br>
+          <button id="copiarPixBtn">📋 Copiar chave PIX</button>
+        `;
+        document.getElementById('copiarPixBtn')?.addEventListener('click', () => {
+          const input = document.getElementById('chavePixInput');
+          input.select();
+          document.execCommand('copy');
+          alert('✅ Chave PIX copiada!');
+        });
+      } else pixDiv.innerHTML = '';
+      // Texto explicativo
+      document.getElementById('textoDiv').innerHTML = configAtual.texto_explicativo || '';
+      // Contador ou ganhador
+      const contadorDiv = document.getElementById('contadorDiv');
+      if (configAtual.ganhador_nome) {
+        contadorDiv.innerHTML = `🎉 PARABÉNS, ${configAtual.ganhador_nome}! 🎉<br>Número: ${configAtual.ganhador_numero}`;
+        contadorDiv.style.background = 'gold';
+        contadorDiv.style.color = '#4a235a';
+      } else if (configAtual.rifa_encerrada) {
+        contadorDiv.innerHTML = '🔒 RIFA ENCERRADA 🔒';
+      } else if (configAtual.data_sorteio) {
+        atualizarContador(configAtual.data_sorteio);
+        setInterval(() => atualizarContador(configAtual.data_sorteio), 1000);
+      } else {
+        contadorDiv.innerHTML = '📅 Data do sorteio não definida';
+      }
+    }
+    // Renderizar números
+    const grid = document.getElementById('numerosGrid');
+    grid.innerHTML = '';
+    for (const num of numerosAtuais) {
+      const div = document.createElement('div');
+      div.className = `numero ${num.nome_comprador ? 'ocupado' : 'disponivel'}`;
+      div.textContent = num.numero;
+      if (num.nome_comprador) {
+        div.title = `Comprador: ${num.nome_comprador}`;
+        div.onclick = () => alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}`);
+      } else {
+        div.title = 'Número disponível';
+      }
+      grid.appendChild(div);
     }
   }
 
-  // EVENTOS
-  document.getElementById('loginBtn').onclick = async () => {
-    const usuario = document.getElementById('loginUsuario').value.trim();
-    const senha = document.getElementById('loginSenha').value;
-    
-    if (!usuario || !senha) {
-      document.getElementById('loginMsg').innerHTML = '<span class="erro">Preencha usuário e senha</span>';
+  function atualizarContador(dataSorteio) {
+    const alvo = new Date(dataSorteio).getTime();
+    const agora = new Date().getTime();
+    const diff = alvo - agora;
+    const contadorDiv = document.getElementById('contadorDiv');
+    if (diff <= 0) {
+      contadorDiv.innerHTML = '🎲 SORTEIO REALIZADO! 🎲';
       return;
     }
-    
+    const dias = Math.floor(diff / (1000*60*60*24));
+    const horas = Math.floor((diff % (86400000)) / 3600000);
+    const minutos = Math.floor((diff % 3600000) / 60000);
+    const segundos = Math.floor((diff % 60000) / 1000);
+    contadorDiv.innerHTML = `⏰ SORTEIO EM:<br>${dias}d ${horas}h ${minutos}m ${segundos}s`;
+  }
+
+  // Busca por nome
+  document.getElementById('meusNumerosBtn').onclick = () => document.getElementById('modalBusca').style.display = 'flex';
+  document.getElementById('fecharBusca').onclick = () => {
+    document.getElementById('modalBusca').style.display = 'none';
+    document.getElementById('resultadoBusca').innerHTML = '';
+  };
+  document.getElementById('confirmarBusca').onclick = async () => {
+    const nome = document.getElementById('buscaNome').value.trim();
+    if (!nome) { alert('Digite seu nome'); return; }
     try {
-      const user = await fazerLogin(usuario, senha);
-      usuarioAtual = user;
-      document.getElementById('loginPanel').style.display = 'none';
-      document.getElementById('adminPanel').style.display = 'block';
-      document.getElementById('usuarioLogado').innerHTML = `✅ Logado como: <strong>${user.nome || user.usuario}</strong>`;
-      await registrarLog('Login realizado');
-      carregarConfigAdmin();
-      carregarLogs();
-    } catch(e) {
-      document.getElementById('loginMsg').innerHTML = `<span class="erro">❌ ${e.message}</span>`;
-    }
+      const data = await fetchSupabase(`numeros?select=numero&nome_comprador=eq.${encodeURIComponent(nome)}`);
+      const resultadoDiv = document.getElementById('resultadoBusca');
+      if (!data || data.length === 0) resultadoDiv.innerHTML = '❌ Nenhum número encontrado.';
+      else {
+        const nums = data.map(n => n.numero).sort((a,b)=>a-b);
+        resultadoDiv.innerHTML = `✅ Seus números: ${nums.join(', ')}`;
+      }
+    } catch(e) { resultadoDiv.innerHTML = 'Erro na busca'; }
   };
 
-  document.getElementById('logoutBtn').onclick = async () => {
-    await registrarLog('Logout');
-    usuarioAtual = null;
-    document.getElementById('loginPanel').style.display = 'block';
-    document.getElementById('adminPanel').style.display = 'none';
-    document.getElementById('loginUsuario').value = '';
-    document.getElementById('loginSenha').value = '';
-    document.getElementById('loginMsg').innerHTML = '';
+  // WhatsApp
+  document.getElementById('whatsappBtn').onclick = () => {
+    let texto = configAtual?.texto_compartilhamento || 'Participe da rifa! 🎟️';
+    texto += `\n\nLink: ${window.location.href}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
   };
 
-  document.getElementById('adicionarCompradorBtn').onclick = async () => {
-    const numero = parseInt(document.getElementById('numeroCompra').value);
-    const nome = document.getElementById('nomeCompra').value;
-    if (!numero || !nome) { alert('Preencha número e nome'); return; }
-    if (numero < 1 || numero > 100) { alert('Número deve ser entre 1 e 100'); return; }
-    
-    try {
-      const { error } = await supabase
-        .from('numeros')
-        .update({ nome_comprador: nome, data_compra: new Date() })
-        .eq('numero', numero);
-      
-      if (error) throw error;
-      await registrarLog(`Vendeu número ${numero} para ${nome}`);
-      document.getElementById('compraMsg').innerHTML = '<span class="sucesso">✅ Venda registrada!</span>';
-      document.getElementById('numeroCompra').value = '';
-      document.getElementById('nomeCompra').value = '';
-      setTimeout(() => { document.getElementById('compraMsg').innerHTML = ''; }, 3000);
-      carregarLogs();
-    } catch(e) {
-      document.getElementById('compraMsg').innerHTML = `<span class="erro">❌ ${e.message}</span>`;
-    }
-  };
-
-  document.getElementById('salvarConfigBtn').onclick = async () => {
-    const titulo = document.getElementById('configTitulo').value;
-    const chavePix = document.getElementById('configChavePix').value;
-    const textoExplicativo = document.getElementById('configTextoExplicativo').value;
-    const dataSorteio = document.getElementById('configDataSorteio').value;
-    const textoWhatsapp = document.getElementById('configTextoWhatsapp').value;
-    
-    try {
-      const { error } = await supabase.from('config').update({
-        titulo, chave_pix: chavePix, texto_explicativo: textoExplicativo,
-        data_sorteio: dataSorteio || null, texto_compartilhamento: textoWhatsapp
-      }).eq('id', 1);
-      if (error) throw error;
-      await registrarLog('Atualizou configurações');
-      alert('✅ Configurações salvas!');
-      carregarLogs();
-    } catch(e) { alert('Erro: ' + e.message); }
-  };
-
-  document.getElementById('uploadFotoBtn').onclick = async () => {
-    const file = document.getElementById('uploadFoto').files[0];
-    if (!file) { alert('Selecione uma foto'); return; }
-    try {
-      const fileName = `${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage.from('brindes').upload(fileName, file);
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('brindes').getPublicUrl(fileName);
-      const { error: updateError } = await supabase.from('config').update({ foto_url: publicUrl }).eq('id', 1);
-      if (updateError) throw updateError;
-      await registrarLog('Atualizou foto do brinde');
-      document.getElementById('fotoMsg').innerHTML = `<span class="sucesso">✅ Foto enviada!</span>`;
-      setTimeout(() => { document.getElementById('fotoMsg').innerHTML = ''; }, 3000);
-      carregarLogs();
-    } catch(e) { document.getElementById('fotoMsg').innerHTML = `<span class="erro">❌ ${e.message}</span>`; }
-  };
-
-  document.getElementById('definirGanhadorBtn').onclick = async () => {
-    const numero = parseInt(document.getElementById('ganhadorNumero').value);
-    const nome = document.getElementById('ganhadorNome').value;
-    if (!numero || !nome) { alert('Preencha número e nome do ganhador'); return; }
-    if (confirm(`Definir ${nome} como ganhador do número ${numero}?`)) {
-      const { error } = await supabase.from('config').update({ 
-        ganhador_nome: nome, ganhador_numero: numero, rifa_encerrada: true 
-      }).eq('id', 1);
-      if (error) throw error;
-      await registrarLog(`Definiu ganhador: ${nome} - Número ${numero}`);
-      alert('✅ Ganhador definido!');
-      carregarLogs();
-    }
-  };
-
-  document.getElementById('encerrarRifaBtn').onclick = async () => {
-    if (confirm('Encerrar a rifa?')) {
-      const { error } = await supabase.from('config').update({ rifa_encerrada: true }).eq('id', 1);
-      if (error) throw error;
-      await registrarLog('Encerrou a rifa');
-      alert('✅ Rifa encerrada!');
-      carregarLogs();
-    }
-  };
-
-  document.getElementById('reabrirRifaBtn').onclick = async () => {
-    if (confirm('Reabrir a rifa?')) {
-      const { error } = await supabase.from('config').update({ 
-        rifa_encerrada: false, ganhador_nome: null, ganhador_numero: null 
-      }).eq('id', 1);
-      if (error) throw error;
-      await registrarLog('Reabriu a rifa');
-      alert('✅ Rifa reaberta!');
-      carregarLogs();
-    }
-  };
-
-  document.getElementById('gerarPDFBtn').onclick = async () => {
-    const { data } = await supabase.from('numeros').select('numero, nome_comprador').not('nome_comprador', 'is', null);
-    if (!data || data.length === 0) {
-      alert('Nenhum comprador registrado');
-      return;
-    }
-    let html = '<html><head><meta charset="UTF-8"><title>Compradores</title></head><body>';
-    html += '<h1>Lista de Compradores</h1><ul>';
-    for (const c of data) {
-      html += `<li>Número ${c.numero} - ${c.nome_comprador}</li>`;
-    }
-    html += '</ul></body></html>';
-    const win = window.open();
-    win.document.write(html);
-    win.document.close();
-    win.print();
-    await registrarLog('Gerou relatório PDF');
-  };
+  async function iniciar() {
+    await carregarConfig();
+    await carregarNumeros();
+    setInterval(async () => {
+      await carregarNumeros();
+      await carregarConfig();
+    }, 8000);
+  }
+  iniciar();
 </script>
 </body>
 </html>
