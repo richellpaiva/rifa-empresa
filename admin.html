@@ -97,7 +97,7 @@
     .voltar-link { display: inline-block; margin-bottom: 20px; text-decoration: none; background: #f4ecf7; padding: 8px 16px; border-radius: 30px; color: #4a235a; font-weight: bold; }
     .voltar-link:hover { background: #d2b4de; }
 
-    /* LOADING OVERLAY */
+    /* LOADING */
     .loading-overlay {
       display: none;
       position: fixed;
@@ -113,32 +113,14 @@
     }
     .loading-overlay.active { display: flex; }
     .spinner {
-      width: 60px;
-      height: 60px;
-      border: 6px solid #f3f3f3;
-      border-top: 6px solid #9b59b6;
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #9b59b6;
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-    .loading-text {
-      color: white;
-      margin-top: 20px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    .loading-progress {
-      width: 300px;
-      background: #f3f3f3;
-      border-radius: 10px;
-      margin-top: 15px;
-      overflow: hidden;
-    }
-    .loading-progress-bar {
-      width: 0%;
-      height: 10px;
-      background: #9b59b6;
-      transition: width 0.3s;
-    }
+    .loading-text { color: white; margin-top: 15px; font-size: 16px; }
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
@@ -149,9 +131,6 @@
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
   <div class="loading-text" id="loadingText">Atualizando rifa...</div>
-  <div class="loading-progress">
-    <div class="loading-progress-bar" id="loadingProgressBar"></div>
-  </div>
 </div>
 
 <div class="container">
@@ -277,25 +256,11 @@
   let numerosAtuais = [];
   let numerosSelecionados = new Set();
 
-  // Loading control
-  function showLoading(text = 'Atualizando rifa...', showProgress = false) {
+  function showLoading(text = 'Atualizando rifa...') {
     const overlay = document.getElementById('loadingOverlay');
     document.getElementById('loadingText').innerText = text;
-    const progressBar = document.getElementById('loadingProgressBar');
-    if (showProgress) {
-      progressBar.parentElement.style.display = 'block';
-      progressBar.style.width = '0%';
-    } else {
-      progressBar.parentElement.style.display = 'none';
-    }
     overlay.classList.add('active');
-    // Desabilitar todos os botões
     document.querySelectorAll('button').forEach(btn => btn.disabled = true);
-  }
-
-  function updateLoadingProgress(percent) {
-    const progressBar = document.getElementById('loadingProgressBar');
-    if (progressBar) progressBar.style.width = `${percent}%`;
   }
 
   function hideLoading() {
@@ -314,7 +279,7 @@
 
   async function registrarLog(acao) {
     if (!usuarioLogado) return;
-    await fetchSupabase('logs', { method: 'POST', body: JSON.stringify({ acao, usuario: usuarioLogado.usuario, data_hora: new Date()) }).catch(e => console.error);
+    await fetchSupabase('logs', { method: 'POST', body: JSON.stringify({ acao, usuario: usuarioLogado.usuario, data_hora: new Date() }) }).catch(e => console.error);
   }
 
   async function carregarTotalNumeros() {
@@ -325,47 +290,32 @@
   async function atualizarTotalNumeros(novoTotal) {
     if (novoTotal < 1 || novoTotal > 5000) throw new Error('Total deve ser entre 1 e 5000');
     
-    showLoading(`Atualizando rifa para ${novoTotal} números...`, true);
-    updateLoadingProgress(10);
+    showLoading(`Atualizando rifa para ${novoTotal} números...`);
     
     const numerosExistentes = await fetchSupabase('numeros?order=numero.asc');
     const lista = numerosExistentes || [];
     const existentesSet = new Set(lista.map(n => n.numero));
     
-    // Passo 1: Remover números excedentes não vendidos (20%)
-    updateLoadingProgress(20);
-    let removidos = 0;
-    const toRemove = lista.filter(num => num.numero > novoTotal && !num.nome_comprador);
-    for (const num of toRemove) {
-      await fetchSupabase(`numeros?numero=eq.${num.numero}`, { method: 'DELETE' });
-      removidos++;
-      updateLoadingProgress(20 + (removidos / toRemove.length) * 20);
+    // Remover não vendidos acima do novo total
+    for (const num of lista) {
+      if (num.numero > novoTotal && !num.nome_comprador) {
+        await fetchSupabase(`numeros?numero=eq.${num.numero}`, { method: 'DELETE' });
+      }
     }
     
-    // Passo 2: Adicionar números faltantes (60%)
-    updateLoadingProgress(40);
-    let adicionados = 0;
-    const toAdd = [];
+    // Adicionar números faltantes
     for (let i = 1; i <= novoTotal; i++) {
-      if (!existentesSet.has(i)) toAdd.push(i);
-    }
-    for (const i of toAdd) {
-      await fetchSupabase('numeros', { method: 'POST', body: JSON.stringify({ numero: i, nome_comprador: null }) });
-      adicionados++;
-      updateLoadingProgress(40 + (adicionados / toAdd.length) * 60);
+      if (!existentesSet.has(i)) {
+        await fetchSupabase('numeros', { method: 'POST', body: JSON.stringify({ numero: i, nome_comprador: null }) });
+      }
     }
     
-    // Passo 3: Atualizar config (100%)
-    updateLoadingProgress(95);
     await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ total_numeros: novoTotal }) });
     await registrarLog(`Alterou total de números para ${novoTotal}`);
     await carregarNumeros();
-    updateLoadingProgress(100);
     
-    setTimeout(() => {
-      hideLoading();
-      mostrarMensagem('totalMensagem', `✅ Total atualizado para ${novoTotal} números. (${removidos} removidos, ${adicionados} adicionados)`, 'sucesso');
-    }, 500);
+    hideLoading();
+    mostrarMensagem('totalMensagem', `✅ Total atualizado para ${novoTotal} números.`, 'sucesso');
   }
 
   async function carregarVendas(filtro = '') {
