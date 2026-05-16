@@ -103,6 +103,9 @@
       margin: 20px 0;
       line-height: 1.5;
       border-left: 6px solid #8e44ad;
+      word-wrap: break-word;        /* CORREÇÃO 1: quebra texto longo */
+      white-space: normal;          /* CORREÇÃO 1: permite quebra */
+      overflow-wrap: break-word;    /* CORREÇÃO 1: quebra palavra longa */
     }
     .botoes-acao {
       display: flex;
@@ -168,7 +171,7 @@
     <button id="meusNumerosBtn">🔍 Meus números</button>
     <button id="whatsappBtn">📱 Compartilhar</button>
   </div>
-  <h3>🎟️ Números disponíveis <span id="totalNumerosSpan"></span></h3>
+  <h3>🎟️ Números disponíveis (<span id="totalNumerosSpan"></span> disponíveis de <span id="totalConfigSpan"></span>)</h3>
   <div class="numeros-grid" id="numerosGrid"></div>
   <div class="admin-link"><a href="admin.html">👑 Admin</a></div>
   <footer>Atualiza automática • Rifa online</footer>
@@ -212,7 +215,7 @@
       if (data && data[0]) {
         configAtual = data[0];
         totalNumeros = configAtual.total_numeros || 1000;
-        document.getElementById('totalNumerosSpan').innerText = `(Total: ${totalNumeros})`;
+        document.getElementById('totalConfigSpan').innerText = totalNumeros;
       }
     } catch(e) { console.error(e); }
   }
@@ -221,7 +224,14 @@
     try {
       const data = await fetchSupabase('numeros?order=numero.asc');
       // Filtrar apenas números até o total definido
-      numerosAtuais = (data || []).filter(n => n.numero <= totalNumeros);
+      const todosNumeros = data || [];
+      numerosAtuais = todosNumeros.filter(n => n.numero <= totalNumeros);
+      
+      // CORREÇÃO 2: calcular disponíveis (total configurado - vendidos dentro da faixa)
+      const vendidos = numerosAtuais.filter(n => n.nome_comprador).length;
+      const disponiveis = totalNumeros - vendidos;
+      document.getElementById('totalNumerosSpan').innerText = disponiveis;
+      
       atualizarInterface();
     } catch(e) { 
       document.getElementById('numerosGrid').innerHTML = '<p style="color:red">Erro ao carregar números</p>';
