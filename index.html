@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>Rifa Online - 1000 números</title>
+  <!-- versão 20250516.03 - cache reset -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -186,6 +187,7 @@
 </div>
 
 <script>
+  // CONFIGURAÇÃO DO SUPABASE
   const SUPABASE_URL = 'https://wrofweogvhgkocevlvdf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
 
@@ -300,7 +302,6 @@
     const nome = document.getElementById('buscaNome').value.trim();
     if (!nome) { alert('Digite parte do seu nome'); return; }
     try {
-      // Busca com ilike (case insensitive) - ex: %Riche%
       const endpoint = `numeros?select=numero&nome_comprador=ilike.%25${encodeURIComponent(nome)}%25`;
       const data = await fetchSupabase(endpoint);
       const resultadoDiv = document.getElementById('resultadoBusca');
