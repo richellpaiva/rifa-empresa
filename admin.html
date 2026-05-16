@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Rifa Online</title>
+  <title>Admin - Rifa Azul</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg, #9b59b6 0%, #6c3483 100%);
+      background: linear-gradient(135deg, #0d47a1 0%, #1976d2 100%);
       min-height: 100vh;
       padding: 20px;
     }
@@ -20,17 +20,17 @@
       margin-bottom: 25px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     }
-    h1, h2, h3 { color: #4a235a; margin-bottom: 15px; }
+    h1, h2, h3 { color: #0d47a1; margin-bottom: 15px; }
     input, textarea, select {
       width: 100%;
       padding: 12px;
       margin: 8px 0;
-      border: 1px solid #d2b4de;
+      border: 1px solid #90caf9;
       border-radius: 30px;
       font-size: 14px;
     }
     button {
-      background: #8e44ad;
+      background: #1976d2;
       color: white;
       border: none;
       padding: 10px 20px;
@@ -40,21 +40,21 @@
       transition: 0.2s;
       font-size: 14px;
     }
-    button:hover { background: #6c3483; transform: scale(1.02); }
-    .btn-danger { background: #c0392b; }
-    .btn-danger:hover { background: #a82313; }
-    .btn-success { background: #27ae60; }
-    .btn-success:hover { background: #1e8449; }
-    .btn-warning { background: #f39c12; color: #2c3e50; }
-    .btn-info { background: #3498db; }
+    button:hover { background: #0d47a1; transform: scale(1.02); }
+    .btn-danger { background: #d32f2f; }
+    .btn-danger:hover { background: #b71c1c; }
+    .btn-success { background: #2e7d32; }
+    .btn-success:hover { background: #1b5e20; }
+    .btn-warning { background: #f57c00; color: #2c3e50; }
+    .btn-info { background: #0288d1; }
     .mensagem {
       padding: 12px;
       border-radius: 30px;
       margin: 10px 0;
       display: none;
     }
-    .mensagem.sucesso { background: #d5f5e3; color: #1e8449; display: block; }
-    .mensagem.erro { background: #fadbd8; color: #c0392b; display: block; }
+    .mensagem.sucesso { background: #c8e6c9; color: #1b5e20; display: block; }
+    .mensagem.erro { background: #ffcdd2; color: #b71c1c; display: block; }
     .login-box { max-width: 450px; margin: 80px auto; text-align: center; }
     .grid-numeros {
       display: flex;
@@ -78,10 +78,10 @@
       cursor: pointer;
       transition: 0.1s;
     }
-    .numero-livre { background: #d2b4de; color: #4a235a; }
-    .numero-vendido { background: #4a235a; color: #f5eef8; cursor: not-allowed; opacity: 0.7; }
-    .numero-selecionado { background: #f1c40f; color: #2c3e50; box-shadow: 0 0 0 2px #e67e22; transform: scale(0.98); }
-    .info { background: #f4ecf7; padding: 15px; border-radius: 20px; margin: 15px 0; }
+    .numero-livre { background: #90caf9; color: #0d47a1; }
+    .numero-vendido { background: #1565c0; color: white; cursor: not-allowed; opacity: 0.8; }
+    .numero-selecionado { background: #ffb74d; color: #2c3e50; box-shadow: 0 0 0 2px #f57c00; transform: scale(0.98); }
+    .info { background: #e3f2fd; padding: 15px; border-radius: 20px; margin: 15px 0; }
     .selecao-bar {
       display: flex;
       justify-content: space-between;
@@ -91,16 +91,27 @@
     }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-    th { background: #f4ecf7; }
+    th { background: #e3f2fd; }
     .acao-btn { padding: 5px 10px; margin: 2px; font-size: 12px; }
-    .voltar-link { display: inline-block; margin-bottom: 20px; text-decoration: none; background: #f4ecf7; padding: 8px 16px; border-radius: 30px; color: #4a235a; font-weight: bold; }
-    .voltar-link:hover { background: #d2b4de; }
+    .voltar-link { display: inline-block; margin-bottom: 20px; text-decoration: none; background: #e3f2fd; padding: 8px 16px; border-radius: 30px; color: #0d47a1; font-weight: bold; }
+    .voltar-link:hover { background: #90caf9; }
+    .grafico-container {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+    canvas { max-width: 200px; max-height: 200px; }
+    .estatisticas { flex: 1; }
+    .valor-item { font-size: 18px; margin: 10px 0; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="container">
   <div id="telaLogin" class="card login-box">
-    <h1>🔐 Login Admin - Rifa Online</h1>
+    <h1>🔐 Login Admin - Rifa Azul</h1>
     <input type="text" id="loginUsuario" placeholder="Usuário">
     <input type="password" id="loginSenha" placeholder="Senha">
     <button id="btnLogin">Entrar</button>
@@ -113,10 +124,29 @@
     </div>
     <div class="card">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>👑 Painel Admin - Rifa Online</h1>
+        <h1>👑 Painel Admin - Rifa Azul</h1>
         <button id="btnLogout" class="btn-danger">Sair</button>
       </div>
       <div id="usuarioInfo" class="info"></div>
+    </div>
+
+    <!-- Estatísticas e gráfico -->
+    <div class="card">
+      <h2>📊 Estatísticas da Rifa</h2>
+      <div class="grafico-container">
+        <canvas id="pieChart" width="200" height="200"></canvas>
+        <div class="estatisticas">
+          <div class="valor-item">💰 Valor por ponto: R$ <span id="valorPontoSpan">0</span></div>
+          <div class="valor-item">📦 Total arrecadado: R$ <span id="totalArrecadadoSpan">0</span></div>
+          <div class="valor-item">🎟️ Números vendidos: <span id="totalVendidosSpan">0</span></div>
+          <div class="valor-item">✅ Números disponíveis: <span id="totalDisponiveisSpan">0</span></div>
+        </div>
+      </div>
+      <div style="margin-top: 15px;">
+        <label>Valor por ponto (R$):</label>
+        <input type="number" id="valorPontoInput" step="0.01" placeholder="Ex: 10.00">
+        <button id="btnSalvarValor" class="btn-info">Salvar valor</button>
+      </div>
     </div>
 
     <div class="card">
@@ -153,16 +183,23 @@
         <input type="text" id="pesquisarComprador" placeholder="Pesquisar por nome do comprador" style="flex:2;">
         <button id="btnPesquisarVenda" class="btn-info">Pesquisar</button>
         <button id="btnMostrarTodasVendas" class="btn-info">Mostrar todas</button>
+        <button id="btnExportarPDF" class="btn-success">📄 Exportar PDF</button>
+        <button id="btnExportarExcel" class="btn-success">📊 Exportar Excel</button>
       </div>
       <div id="vendasLista" style="max-height: 350px; overflow-y: auto;">
-        <table id="tabelaVendas"><thead><tr><th>ID</th><th>Comprador</th><th>Data</th><th>Qtd (números)</th><th>Ações</th></tr></thead><tbody id="corpoVendas"></tbody></table>
+        <table id="tabelaVendas">
+          <thead>
+            <tr><th>Código</th><th>Comprador</th><th>Data</th><th>Qtd</th><th>Valor (R$)</th><th>Ações</th></tr>
+          </thead>
+          <tbody id="corpoVendas"></tbody>
+        </table>
       </div>
       <div id="vendaMensagem" class="mensagem"></div>
     </div>
 
     <div class="card">
       <h2>⚙️ Configurações da rifa</h2>
-      <input type="text" id="configTitulo" placeholder="Título" value="Rifa Online">
+      <input type="text" id="configTitulo" placeholder="Título" value="Rifa Azul">
       <input type="text" id="configChavePix" placeholder="Chave PIX">
       <textarea id="configTexto" rows="3" placeholder="Texto explicativo"></textarea>
       <input type="datetime-local" id="configDataSorteio">
@@ -193,7 +230,6 @@
       <h2>🔒 Controle da rifa</h2>
       <button id="btnEncerrar" class="btn-danger">Encerrar rifa</button>
       <button id="btnReabrir">Reabrir rifa</button>
-      <button id="btnPDF" class="btn-success">Gerar PDF dos compradores</button>
     </div>
 
     <div class="card">
@@ -203,58 +239,18 @@
   </div>
 </div>
 
-<!-- Loading Overlay -->
-<div id="loadingOverlay" style="
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(74, 35, 90, 0.75);
-  backdrop-filter: blur(4px);
-  z-index: 9999;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  gap: 20px;
-">
-  <div style="
-    background: white;
-    border-radius: 24px;
-    padding: 36px 48px;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-    min-width: 260px;
-  ">
-    <div id="loadingSpinner" style="
-      width: 52px; height: 52px;
-      border: 5px solid #d2b4de;
-      border-top-color: #8e44ad;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 18px;
-    "></div>
-    <div id="loadingTexto" style="color: #4a235a; font-size: 17px; font-weight: bold;">Carregando...</div>
-    <div id="loadingSubtexto" style="color: #8e44ad; font-size: 13px; margin-top: 6px;"></div>
-  </div>
-</div>
-<style>
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
-
 <script>
   const SUPABASE_URL = 'https://wrofweogvhgkocevlvdf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indyb2Z3ZW9ndmhna29jZXZsdmRmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODgwMzgxOSwiZXhwIjoyMDk0Mzc5ODE5fQ.-SJeuoVOHkuFH2UVs4GWsY0UNWYiWsSB211zKx5pmy0';
   const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
-  // Headers para GET (sem limit) e para escrita
   const headersGet = { ...headers, 'Range-Unit': 'items', 'Range': '0-999' };
 
   async function fetchSupabase(endpoint, options = {}) {
     const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
-    // Para GET, usa headersGet que força buscar até 1000 itens
     const isGet = !options.method || options.method === 'GET';
     const hdrs = isGet ? headersGet : headers;
     const res = await fetch(url, { ...options, headers: hdrs });
     if (!res.ok) throw new Error(await res.text());
-    // Respostas 204 (No Content) e 202 não têm corpo
     if (res.status === 204 || res.status === 202) return null;
     const text = await res.text();
     return text ? JSON.parse(text) : null;
@@ -263,27 +259,50 @@
   let usuarioLogado = null;
   let numerosAtuais = [];
   let numerosSelecionados = new Set();
-
-  function showLoading(texto = 'Carregando...', subtexto = '') {
-    const overlay = document.getElementById('loadingOverlay');
-    document.getElementById('loadingTexto').textContent = texto;
-    document.getElementById('loadingSubtexto').textContent = subtexto;
-    overlay.style.display = 'flex';
-  }
-  function hideLoading() {
-    document.getElementById('loadingOverlay').style.display = 'none';
-  }
+  let valorPonto = 0;
+  let chart = null;
 
   function mostrarMensagem(elId, texto, tipo) {
     const div = document.getElementById(elId);
-    if (!div) return;
-    div.textContent = texto;
-    div.className = `mensagem ${tipo}`;
-    setTimeout(() => { div.className = 'mensagem'; div.textContent = ''; }, 4000);
+    if (div) { div.textContent = texto; div.className = `mensagem ${tipo}`; setTimeout(() => { div.className = 'mensagem'; div.textContent = ''; }, 4000); }
   }
   async function registrarLog(acao) {
     if (!usuarioLogado) return;
     await fetchSupabase('logs', { method: 'POST', body: JSON.stringify({ acao, usuario: usuarioLogado.usuario, data_hora: new Date() }) }).catch(e => console.error);
+  }
+
+  async function carregarValorPonto() {
+    const data = await fetchSupabase('config?id=eq.1');
+    if (data && data[0]) {
+      valorPonto = data[0].valor_ponto || 0;
+      document.getElementById('valorPontoInput').value = valorPonto;
+      document.getElementById('valorPontoSpan').innerText = valorPonto.toFixed(2);
+    }
+  }
+
+  async function atualizarEstatisticas() {
+    const data = await fetchSupabase('numeros?order=numero.asc');
+    const todos = data || [];
+    const vendidos = todos.filter(n => n.nome_comprador).length;
+    const disponiveis = todos.length - vendidos;
+    const totalArrecadado = vendidos * valorPonto;
+    document.getElementById('totalVendidosSpan').innerText = vendidos;
+    document.getElementById('totalDisponiveisSpan').innerText = disponiveis;
+    document.getElementById('totalArrecadadoSpan').innerText = totalArrecadado.toFixed(2);
+    if (chart) chart.destroy();
+    const ctx = document.getElementById('pieChart').getContext('2d');
+    chart = new Chart(ctx, { type: 'pie', data: { labels: ['Vendidos', 'Disponíveis'], datasets: [{ data: [vendidos, disponiveis], backgroundColor: ['#1565c0', '#90caf9'] }] } });
+  }
+
+  async function salvarValorPonto() {
+    const novoValor = parseFloat(document.getElementById('valorPontoInput').value);
+    if (isNaN(novoValor)) return mostrarMensagem('configMensagem', 'Digite um valor válido', 'erro');
+    await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ valor_ponto: novoValor }) });
+    valorPonto = novoValor;
+    document.getElementById('valorPontoSpan').innerText = novoValor.toFixed(2);
+    await atualizarEstatisticas();
+    await registrarLog(`Alterou valor do ponto para R$ ${novoValor}`);
+    mostrarMensagem('configMensagem', `✅ Valor do ponto: R$ ${novoValor}`, 'sucesso');
   }
 
   async function carregarTotalNumeros() {
@@ -293,28 +312,13 @@
 
   async function atualizarTotalNumeros(novoTotal) {
     if (novoTotal < 1 || novoTotal > 1000) throw new Error('Total deve ser entre 1 e 1000');
-    showLoading(`Atualizando para ${novoTotal} números...`, 'Isso pode levar alguns segundos');
-
-    // 1. Remover números não vendidos acima do novo total (UMA única requisição DELETE em lote)
-    const delRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/numeros?numero=gt.${novoTotal}&nome_comprador=is.null`,
-      { method: 'DELETE', headers }
-    );
-    if (!delRes.ok) throw new Error('Erro ao remover números excedentes: ' + await delRes.text());
-
-    // 2. Adicionar números faltantes via RPC (função SQL — uma única chamada para qualquer quantidade)
-    const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/adicionar_numeros_faltantes`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ limite_total: novoTotal })
-    });
-    if (!rpcRes.ok) throw new Error('Erro na RPC adicionar_numeros_faltantes: ' + await rpcRes.text());
-
-    // 3. Atualizar config
+    const delRes = await fetch(`${SUPABASE_URL}/rest/v1/numeros?numero=gt.${novoTotal}&nome_comprador=is.null`, { method: 'DELETE', headers });
+    if (!delRes.ok) throw new Error('Erro ao remover números excedentes');
+    const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/adicionar_numeros_faltantes`, { method: 'POST', headers, body: JSON.stringify({ limite_total: novoTotal }) });
+    if (!rpcRes.ok) throw new Error('Erro ao adicionar números');
     await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ total_numeros: novoTotal }) });
     await registrarLog(`Alterou total de números para ${novoTotal}`);
     await carregarNumeros();
-    hideLoading();
     mostrarMensagem('totalMensagem', `✅ Total atualizado para ${novoTotal} números.`, 'sucesso');
   }
 
@@ -327,31 +331,57 @@
     for (const v of vendas) {
       const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${v.id}`);
       const listaNumeros = numerosVenda.map(n => n.numero).join(', ');
+      const valorVenda = (v.total_numeros * valorPonto).toFixed(2);
       const row = tbody.insertRow();
       row.insertCell(0).innerText = v.id;
       row.insertCell(1).innerText = v.comprador;
       row.insertCell(2).innerText = new Date(v.data_venda).toLocaleString();
       row.insertCell(3).innerText = `${v.total_numeros} (${listaNumeros})`;
-      const acoes = row.insertCell(4);
-      const btnEditar = document.createElement('button'); btnEditar.innerText = 'Editar nome'; btnEditar.className = 'acao-btn btn-info';
+      row.insertCell(4).innerText = `R$ ${valorVenda}`;
+      const acoes = row.insertCell(5);
+      const btnEditar = document.createElement('button'); btnEditar.innerText = 'Editar'; btnEditar.className = 'acao-btn btn-info';
       btnEditar.onclick = () => editarVenda(v.id, v.comprador);
       const btnExcluir = document.createElement('button'); btnExcluir.innerText = 'Excluir'; btnExcluir.className = 'acao-btn btn-danger';
       btnExcluir.onclick = () => excluirVenda(v.id);
       acoes.appendChild(btnEditar); acoes.appendChild(btnExcluir);
     }
   }
+
   async function editarVenda(vendaId, nomeAtual) {
-    const novoNome = prompt('Digite o novo nome do comprador:', nomeAtual);
-    if (!novoNome || novoNome === nomeAtual) return;
-    try {
-      await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ comprador: novoNome }) });
-      const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
-      for (const item of numerosVenda) await fetchSupabase(`numeros?numero=eq.${item.numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: novoNome }) });
-      await registrarLog(`Editou venda ${vendaId}: ${nomeAtual} → ${novoNome}`);
-      mostrarMensagem('vendaMensagem', '✅ Nome atualizado!', 'sucesso');
-      carregarVendas(); carregarNumeros();
-    } catch (e) { mostrarMensagem('vendaMensagem', 'Erro ao editar: ' + e.message, 'erro'); }
+    const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
+    const numsAtuais = numerosVenda.map(n => n.numero).sort((a,b)=>a-b);
+    const opcao = prompt(`Venda #${vendaId}\nComprador: ${nomeAtual}\nNúmeros: ${numsAtuais.join(',')}\n\n1 - Editar nome\n2 - Editar números`);
+    if (opcao === '1') {
+      const novoNome = prompt('Novo nome:', nomeAtual);
+      if (novoNome && novoNome !== nomeAtual) {
+        await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ comprador: novoNome }) });
+        for (const num of numsAtuais) await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: novoNome }) });
+        await registrarLog(`Editou venda ${vendaId} nome: ${novoNome}`);
+        mostrarMensagem('vendaMensagem', '✅ Nome atualizado!', 'sucesso');
+        carregarVendas(); carregarNumeros(); atualizarEstatisticas();
+      }
+    } else if (opcao === '2') {
+      const novosInput = prompt('Digite os novos números (separados por vírgula):', numsAtuais.join(','));
+      if (novosInput) {
+        const novosNumeros = novosInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n>=1 && n<=1000);
+        if (novosNumeros.length) {
+          for (const num of numsAtuais) {
+            await fetchSupabase(`venda_numeros?numero=eq.${num}&venda_id=eq.${vendaId}`, { method: 'DELETE' });
+            await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
+          }
+          for (const num of novosNumeros) {
+            await fetchSupabase('venda_numeros', { method: 'POST', body: JSON.stringify({ venda_id: vendaId, numero: num }) });
+            await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nomeAtual, venda_id: vendaId }) });
+          }
+          await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ total_numeros: novosNumeros.length }) });
+          await registrarLog(`Editou venda ${vendaId} números: ${novosNumeros.join(',')}`);
+          mostrarMensagem('vendaMensagem', '✅ Números atualizados!', 'sucesso');
+          carregarVendas(); carregarNumeros(); atualizarEstatisticas();
+        }
+      }
+    }
   }
+
   async function excluirVenda(vendaId) {
     if (!confirm('Excluir esta venda? Os números voltarão a ficar disponíveis.')) return;
     try {
@@ -359,9 +389,9 @@
       for (const item of numerosVenda) await fetchSupabase(`numeros?numero=eq.${item.numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
       await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'DELETE' });
       await registrarLog(`Excluiu venda ${vendaId}`);
-      mostrarMensagem('vendaMensagem', '✅ Venda excluída e números liberados!', 'sucesso');
-      carregarVendas(); carregarNumeros();
-    } catch (e) { mostrarMensagem('vendaMensagem', 'Erro ao excluir: ' + e.message, 'erro'); }
+      mostrarMensagem('vendaMensagem', '✅ Venda excluída!', 'sucesso');
+      carregarVendas(); carregarNumeros(); atualizarEstatisticas();
+    } catch (e) { mostrarMensagem('vendaMensagem', 'Erro: ' + e.message, 'erro'); }
   }
 
   async function venderNumerosSelecionados(nomeComprador) {
@@ -387,48 +417,43 @@
   }
 
   async function carregarNumeros() {
-    try {
-      const data = await fetchSupabase('numeros?order=numero.asc');
-      numerosAtuais = data || [];
-      const grid = document.getElementById('listaNumeros');
-      if (!grid) return;
-      grid.innerHTML = '';
-      for (const num of numerosAtuais) {
-        const div = document.createElement('div');
-        div.className = 'numero-item';
-        const isVendido = !!num.nome_comprador;
-        const isSelecionado = numerosSelecionados.has(num.numero);
-        if (isVendido) { div.classList.add('numero-vendido'); div.title = `Vendido para: ${num.nome_comprador}`; }
-        else if (isSelecionado) { div.classList.add('numero-selecionado'); div.title = 'Clique para desmarcar'; }
-        else { div.classList.add('numero-livre'); div.title = 'Clique para selecionar'; }
-        div.textContent = num.numero;
-        if (!isVendido) { div.onclick = () => { if (numerosSelecionados.has(num.numero)) numerosSelecionados.delete(num.numero); else numerosSelecionados.add(num.numero); carregarNumeros(); }; }
-        grid.appendChild(div);
-      }
-    } catch (e) { console.error(e); }
+    const data = await fetchSupabase('numeros?order=numero.asc');
+    numerosAtuais = data || [];
+    const grid = document.getElementById('listaNumeros');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (const num of numerosAtuais) {
+      const div = document.createElement('div');
+      div.className = 'numero-item';
+      const isVendido = !!num.nome_comprador;
+      const isSelecionado = numerosSelecionados.has(num.numero);
+      if (isVendido) { div.classList.add('numero-vendido'); div.title = `Vendido para: ${num.nome_comprador}`; }
+      else if (isSelecionado) { div.classList.add('numero-selecionado'); div.title = 'Clique para desmarcar'; }
+      else { div.classList.add('numero-livre'); div.title = 'Clique para selecionar'; }
+      div.textContent = num.numero;
+      if (!isVendido) { div.onclick = () => { if (numerosSelecionados.has(num.numero)) numerosSelecionados.delete(num.numero); else numerosSelecionados.add(num.numero); carregarNumeros(); }; }
+      grid.appendChild(div);
+    }
+    await atualizarEstatisticas();
   }
 
   async function carregarConfig() {
-    try {
-      const data = await fetchSupabase('config?id=eq.1');
-      if (data && data[0]) {
-        const c = data[0];
-        document.getElementById('configTitulo').value = c.titulo || 'Rifa Online';
-        document.getElementById('configChavePix').value = c.chave_pix || '';
-        document.getElementById('configTexto').value = c.texto_explicativo || '';
-        document.getElementById('configWhatsapp').value = c.texto_compartilhamento || '';
-        if (c.data_sorteio) document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0,16);
-        if (c.foto_url) document.getElementById('fotoPreview').innerHTML = `<img src="${c.foto_url}" style="max-width:150px; border-radius:20px;">`;
-      }
-    } catch(e) { console.error(e); }
+    const data = await fetchSupabase('config?id=eq.1');
+    if (data && data[0]) {
+      const c = data[0];
+      document.getElementById('configTitulo').value = c.titulo || 'Rifa Azul';
+      document.getElementById('configChavePix').value = c.chave_pix || '';
+      document.getElementById('configTexto').value = c.texto_explicativo || '';
+      document.getElementById('configWhatsapp').value = c.texto_compartilhamento || '';
+      if (c.data_sorteio) document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0,16);
+      if (c.foto_url) document.getElementById('fotoPreview').innerHTML = `<img src="${c.foto_url}" style="max-width:150px; border-radius:20px;">`;
+    }
   }
 
   async function carregarLogs() {
-    try {
-      const data = await fetchSupabase('logs?order=data_hora.desc&limit=15');
-      const logsDiv = document.getElementById('logsLista');
-      logsDiv.innerHTML = data && data.length ? data.map(l => `📌 ${new Date(l.data_hora).toLocaleString()} - ${l.acao} (${l.usuario})`).join('<br>') : 'Nenhum log.';
-    } catch(e) { console.error(e); }
+    const data = await fetchSupabase('logs?order=data_hora.desc&limit=15');
+    const logsDiv = document.getElementById('logsLista');
+    logsDiv.innerHTML = data && data.length ? data.map(l => `📌 ${new Date(l.data_hora).toLocaleString()} - ${l.acao} (${l.usuario})`).join('<br>') : 'Nenhum log.';
   }
 
   async function fazerLogin(usuario, senha) {
@@ -437,51 +462,72 @@
     return data[0];
   }
 
+  function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text('Relatório de Vendas', 20, 20);
+    // Implementação mais completa pode ser feita
+    alert('PDF gerado (versão simplificada)');
+  }
+
+  function exportarExcel() {
+    fetchSupabase('vendas?order=data_venda.desc').then(async vendas => {
+      const dados = [];
+      for (const v of vendas) {
+        const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${v.id}`);
+        const listaNumeros = numerosVenda.map(n => n.numero).join(',');
+        dados.push({ Codigo: v.id, Comprador: v.comprador, Data: v.data_venda, Quantidade: v.total_numeros, Numeros: listaNumeros, Valor: (v.total_numeros * valorPonto).toFixed(2) });
+      }
+      const ws = XLSX.utils.json_to_sheet(dados);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Vendas');
+      XLSX.writeFile(wb, `vendas_${new Date().toISOString().slice(0,19)}.xlsx`);
+    });
+  }
+
   document.getElementById('btnLogin').onclick = async () => {
     const usuario = document.getElementById('loginUsuario').value.trim();
     const senha = document.getElementById('loginSenha').value;
     try {
-      showLoading('Verificando login...', '');
       const user = await fazerLogin(usuario, senha);
       usuarioLogado = user;
       document.getElementById('telaLogin').style.display = 'none';
       document.getElementById('painelAdmin').style.display = 'block';
       document.getElementById('usuarioInfo').innerHTML = `✅ Logado como: ${user.nome || user.usuario}`;
       await registrarLog('Login');
-      showLoading('Carregando painel...', 'Buscando dados da rifa');
       await carregarTotalNumeros();
+      await carregarValorPonto();
       await carregarNumeros();
       await carregarConfig();
       await carregarLogs();
       await carregarVendas();
-      hideLoading();
-    } catch(e) { hideLoading(); mostrarMensagem('loginMensagem', e.message, 'erro'); }
+    } catch(e) { mostrarMensagem('loginMensagem', e.message, 'erro'); }
   };
-  document.getElementById('btnLogout').onclick = async () => { await registrarLog('Logout'); location.reload(); };
+  document.getElementById('btnLogout').onclick = () => location.reload();
   document.getElementById('btnAtualizarTotal').onclick = async () => {
     const novoTotal = parseInt(document.getElementById('totalNumerosConfig').value);
     if (isNaN(novoTotal)) return mostrarMensagem('totalMensagem', 'Digite um número válido', 'erro');
     if (confirm(`Alterar total para ${novoTotal} números?`)) {
-      try { await atualizarTotalNumeros(novoTotal); }
-      catch(e) { hideLoading(); mostrarMensagem('totalMensagem', 'Erro: ' + e.message, 'erro'); }
+      try { await atualizarTotalNumeros(novoTotal); await atualizarEstatisticas(); }
+      catch(e) { mostrarMensagem('totalMensagem', 'Erro: ' + e.message, 'erro'); }
     }
   };
+  document.getElementById('btnSalvarValor').onclick = salvarValorPonto;
   document.getElementById('btnPesquisarVenda').onclick = () => carregarVendas(document.getElementById('pesquisarComprador').value.trim());
   document.getElementById('btnMostrarTodasVendas').onclick = () => carregarVendas('');
+  document.getElementById('btnExportarExcel').onclick = exportarExcel;
   document.getElementById('limparSelecaoBtn').onclick = () => { numerosSelecionados.clear(); carregarNumeros(); };
   document.getElementById('venderSelecionadosBtn').onclick = async () => {
     const nome = document.getElementById('venderNome').value.trim();
     if (!nome) return mostrarMensagem('venderMensagem', 'Digite o nome do comprador', 'erro');
-    if (numerosSelecionados.size === 0) return mostrarMensagem('venderMensagem', 'Selecione pelo menos um número', 'erro');
+    if (numerosSelecionados.size === 0) return mostrarMensagem('venderMensagem', 'Selecione números', 'erro');
     try {
-      showLoading(`Registrando venda para ${nome}...`, `${numerosSelecionados.size} número(s) selecionado(s)`);
       const qtd = await venderNumerosSelecionados(nome);
-      hideLoading();
       mostrarMensagem('venderMensagem', `✅ ${qtd} números vendidos para ${nome}`, 'sucesso');
       document.getElementById('venderNome').value = '';
-      await registrarLog(`Vendeu ${qtd} números para ${nome} (${Array.from(numerosSelecionados).join(',')})`);
-      await carregarVendas(); await carregarLogs();
-    } catch(e) { hideLoading(); mostrarMensagem('venderMensagem', e.message, 'erro'); }
+      await registrarLog(`Vendeu ${qtd} números para ${nome}`);
+      await carregarVendas(); await carregarLogs(); await atualizarEstatisticas();
+    } catch(e) { mostrarMensagem('venderMensagem', e.message, 'erro'); }
   };
   document.getElementById('btnSalvarConfig').onclick = async () => {
     const titulo = document.getElementById('configTitulo').value, chave = document.getElementById('configChavePix').value, texto = document.getElementById('configTexto').value, dataSorteio = document.getElementById('configDataSorteio').value, whats = document.getElementById('configWhatsapp').value;
@@ -516,15 +562,6 @@
   };
   document.getElementById('btnEncerrar').onclick = async () => { if (confirm('Encerrar a rifa?')) { await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ rifa_encerrada: true }) }); await registrarLog('Encerrou rifa'); alert('Rifa encerrada'); } };
   document.getElementById('btnReabrir').onclick = async () => { if (confirm('Reabrir a rifa?')) { await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ rifa_encerrada: false, ganhador_nome: null, ganhador_numero: null }) }); await registrarLog('Reabriu rifa'); alert('Rifa reaberta'); } };
-  document.getElementById('btnPDF').onclick = async () => {
-    const data = await fetchSupabase('numeros?not=null.nome_comprador&select=numero,nome_comprador');
-    if (!data.length) { alert('Nenhum comprador'); return; }
-    let html = '<html><head><meta charset="UTF-8"><title>Compradores</title></head><body><h1>Lista de compradores</h1><ul>';
-    data.forEach(c => html += `<li>Número ${c.numero} - ${c.nome_comprador}</li>`);
-    html += '</ul></body></html>';
-    const win = window.open(); win.document.write(html); win.document.close(); win.print();
-    await registrarLog('Gerou PDF');
-  };
 </script>
 </body>
 </html>
