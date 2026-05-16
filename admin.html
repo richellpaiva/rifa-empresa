@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Rifa Lilás</title>
+  <title>Admin - Rifa Online</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -78,7 +78,7 @@
 <body>
 <div class="container">
   <div id="telaLogin" class="card login-box">
-    <h1>🔐 Login Admin</h1>
+    <h1>🔐 Login Admin - Rifa Online</h1>
     <input type="text" id="loginUsername" placeholder="Usuário">
     <input type="password" id="loginPassword" placeholder="Senha">
     <button id="btnLogin">Entrar</button>
@@ -88,7 +88,7 @@
   <div id="painelAdmin" style="display: none;">
     <div class="card">
       <div style="display: flex; justify-content: space-between;">
-        <h1>👑 Painel Admin - Rifa Lilás</h1>
+        <h1>👑 Painel Admin - Rifa Online</h1>
         <button id="btnLogout" class="btn-danger">Sair</button>
       </div>
       <div id="usuarioInfo" class="info"></div>
@@ -108,7 +108,7 @@
 
     <div class="card">
       <h2>⚙️ Configurações</h2>
-      <input type="text" id="configTitulo" placeholder="Título">
+      <input type="text" id="configTitulo" placeholder="Título" value="Rifa Online">
       <input type="text" id="configChavePix" placeholder="Chave PIX">
       <textarea id="configTexto" rows="3" placeholder="Texto explicativo"></textarea>
       <input type="datetime-local" id="configDataSorteio">
@@ -220,7 +220,7 @@
       const data = await fetchSupabase('config?id=eq.1');
       if (data && data[0]) {
         const c = data[0];
-        document.getElementById('configTitulo').value = c.titulo || '';
+        document.getElementById('configTitulo').value = c.titulo || 'Rifa Online';
         document.getElementById('configChavePix').value = c.chave_pix || '';
         document.getElementById('configTexto').value = c.texto_explicativo || '';
         document.getElementById('configWhatsapp').value = c.texto_compartilhamento || '';
