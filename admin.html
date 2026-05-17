@@ -423,12 +423,177 @@
       row.insertCell(3).innerText = `${v.total_numeros} (${listaNumeros})`;
       row.insertCell(4).innerText = `R$ ${valorVenda}`;
       const acoes = row.insertCell(5);
-      const btnEditar = document.createElement('button'); btnEditar.innerText = 'Editar'; btnEditar.className = 'acao-btn btn-info';
+      
+      const btnEditar = document.createElement('button'); 
+      btnEditar.innerText = 'Editar'; 
+      btnEditar.className = 'acao-btn btn-info';
       btnEditar.onclick = () => editarVenda(v.id, v.comprador);
-      const btnExcluir = document.createElement('button'); btnExcluir.innerText = 'Excluir'; btnExcluir.className = 'acao-btn btn-danger';
+      
+      const btnExcluir = document.createElement('button'); 
+      btnExcluir.innerText = 'Excluir'; 
+      btnExcluir.className = 'acao-btn btn-danger';
       btnExcluir.onclick = () => excluirVenda(v.id);
-      acoes.appendChild(btnEditar); acoes.appendChild(btnExcluir);
+      
+      const btnRecibo = document.createElement('button'); 
+      btnRecibo.innerText = 'Recibo'; 
+      btnRecibo.className = 'acao-btn btn-success';
+      btnRecibo.onclick = () => gerarRecibo(v.id, v.comprador, v.data_venda, v.total_numeros, listaNumeros);
+      
+      acoes.appendChild(btnEditar); 
+      acoes.appendChild(btnExcluir);
+      acoes.appendChild(btnRecibo);
     }
+  }
+
+  async function gerarRecibo(vendaId, comprador, dataVenda, totalNumeros, listaNumeros) {
+    showLoading('Gerando recibo...');
+    
+    // Buscar dados da configuração (título, data do sorteio)
+    const configData = await fetchSupabase('config?id=eq.1');
+    const config = configData && configData[0] ? configData[0] : {};
+    const tituloRifa = config.titulo || 'Rifa Online';
+    const dataSorteio = config.data_sorteio ? new Date(config.data_sorteio).toLocaleString() : 'Não definida';
+    
+    const valorTotal = (totalNumeros * valorPonto).toFixed(2).replace('.', ',');
+    const dataVendaFormatada = new Date(dataVenda).toLocaleString();
+    
+    hideLoading();
+    
+    // Criar o HTML do recibo
+    const reciboHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Recibo - Venda #${vendaId}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+          }
+          .recibo {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 30px;
+            position: relative;
+          }
+          .recibo::before {
+            content: "RECIBO";
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 12px;
+            color: #999;
+            letter-spacing: 2px;
+          }
+          h1 {
+            color: #0d47a1;
+            border-bottom: 2px solid #0d47a1;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+          }
+          .info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+          }
+          .info p {
+            margin: 8px 0;
+          }
+          .detalhes {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+          }
+          .detalhes td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+          }
+          .detalhes td:first-child {
+            font-weight: bold;
+            width: 40%;
+            background: #e3f2fd;
+          }
+          .total {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0d47a1;
+            text-align: right;
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 2px solid #0d47a1;
+          }
+          .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+          }
+          button {
+            display: block;
+            width: 200px;
+            margin: 20px auto 0;
+            padding: 10px;
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 14px;
+          }
+          button:hover { background: #0d47a1; }
+          @media print {
+            button { display: none; }
+            body { background: white; padding: 0; }
+            .recibo { box-shadow: none; padding: 15px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="recibo">
+          <h1>${tituloRifa}</h1>
+          <div class="info">
+            <p><strong>📄 RECIBO DE COMPRA</strong></p>
+            <p><strong>Código da venda:</strong> #${vendaId}</p>
+            <p><strong>Data da compra:</strong> ${dataVendaFormatada}</p>
+          </div>
+          <table class="detalhes">
+            <tr><td>Comprador(a)</td><td>${comprador}</td></tr>
+            <tr><td>Números adquiridos</td><td>${listaNumeros}</td></tr>
+            <tr><td>Quantidade de números</td><td>${totalNumeros}</td></tr>
+            <tr><td>Valor por ponto</td><td>R$ ${valorPonto.toFixed(2).replace('.', ',')}</td></tr>
+            <tr><td>Data do sorteio</td><td>${dataSorteio}</td></tr>
+          </table>
+          <div class="total">
+            VALOR TOTAL: R$ ${valorTotal}
+          </div>
+          <div class="footer">
+            <p>Este recibo é a confirmação da sua compra. Guarde-o até o dia do sorteio.</p>
+            <p>Boa sorte! 🍀</p>
+          </div>
+          <button onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+        </div>
+        <script>
+          document.querySelector('button')?.addEventListener('click', () => window.print());
+        <\/script>
+      </body>
+      </html>
+    `;
+    
+    // Abrir nova janela com o recibo
+    const novaJanela = window.open();
+    novaJanela.document.write(reciboHTML);
+    novaJanela.document.close();
   }
 
   async function editarVenda(vendaId, nomeAtual) {
