@@ -126,7 +126,7 @@
       padding: 25px;
       border-radius: 25px;
       max-width: 90%;
-      width: 400px;
+      width: 500px;
       text-align: center;
     }
     .modal-content input {
@@ -136,9 +136,49 @@
       border-radius: 40px;
       border: 1px solid #90caf9;
     }
+    .sugestoes {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #90caf9;
+      border-radius: 20px;
+      margin-top: 5px;
+      display: none;
+    }
+    .sugestao-item {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #e3f2fd;
+    }
+    .sugestao-item:hover {
+      background: #e3f2fd;
+    }
+    .venda-item {
+      background: #e3f2fd;
+      border-radius: 16px;
+      padding: 12px;
+      margin: 10px 0;
+      text-align: left;
+    }
+    .venda-codigo {
+      font-weight: bold;
+      color: #0d47a1;
+    }
+    .venda-data {
+      font-size: 12px;
+      color: #666;
+    }
+    .numeros-lista {
+      font-weight: bold;
+      color: #1565c0;
+    }
+    .venda-valor {
+      color: #2e7d32;
+      font-weight: bold;
+    }
     @media (max-width: 700px) {
       .numero { width: 48px; height: 48px; font-size: 12px; }
       .contador { font-size: 18px; }
+      .modal-content { width: 95%; padding: 15px; }
     }
   </style>
 </head>
@@ -164,13 +204,14 @@
   <footer>Atualiza automática • Rifa online</footer>
 </div>
 
+<!-- MODAL DE BUSCA MELHORADO -->
 <div id="modalBusca" class="modal">
   <div class="modal-content">
     <h3>🔍 Buscar meus números</h3>
-    <input type="text" id="buscaNome" placeholder="Digite parte do seu nome">
-    <button id="confirmarBusca">Buscar</button>
-    <button id="fecharBusca">Fechar</button>
-    <div id="resultadoBusca"></div>
+    <input type="text" id="buscaNome" placeholder="Digite parte do nome" autocomplete="off">
+    <div id="sugestoes" class="sugestoes"></div>
+    <div id="resultadoBusca" style="margin-top: 15px; max-height: 400px; overflow-y: auto;"></div>
+    <button id="fecharBusca" style="margin-top: 10px;">Fechar</button>
   </div>
 </div>
 
@@ -180,12 +221,21 @@
   let configAtual = null;
   let numerosAtuais = [];
   let totalNumeros = 1000;
+  let todosCompradores = [];
+  let valorPonto = 0;
 
   async function fetchAPI(endpoint) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Range-Unit': 'items', 'Range': '0-999' } });
     if (!res.ok) throw new Error(await res.text());
     const text = await res.text();
     return text ? JSON.parse(text) : null;
+  }
+
+  async function carregarValorPonto() {
+    const data = await fetchAPI('config?id=eq.1');
+    if (data && data[0]) {
+      valorPonto = data[0].valor_ponto || 0;
+    }
   }
 
   async function carregarConfig() {
@@ -234,6 +284,81 @@
     }
   }
 
+  // Carregar lista de compradores únicos para sugestões
+  async function carregarCompradores() {
+    const vendas = await fetchAPI('vendas?select=comprador');
+    if (vendas && vendas.length) {
+      const nomes = [...new Set(vendas.map(v => v.comprador))];
+      todosCompradores = nomes.sort();
+    }
+  }
+
+  // Buscar vendas de um comprador específico
+  async function buscarVendasPorComprador(nome) {
+    const vendas = await fetchAPI(`vendas?comprador=eq.${encodeURIComponent(nome)}&order=data_venda.desc`);
+    const resultadoDiv = document.getElementById('resultadoBusca');
+    if (!vendas || vendas.length === 0) {
+      resultadoDiv.innerHTML = '<p>❌ Nenhuma venda encontrada para este comprador.</p>';
+      return;
+    }
+    
+    let html = `<div style="text-align: left;">`;
+    for (const venda of vendas) {
+      const numerosVenda = await fetchAPI(`venda_numeros?select=numero&venda_id=eq.${venda.id}`);
+      const listaNumeros = numerosVenda.map(n => n.numero).sort((a,b)=>a-b).join(', ');
+      const valorTotal = (venda.total_numeros * valorPonto).toFixed(2).replace('.', ',');
+      const dataVenda = new Date(venda.data_venda).toLocaleString();
+      
+      html += `
+        <div class="venda-item">
+          <div class="venda-codigo">🎫 Venda #${venda.id}</div>
+          <div class="venda-data">📅 ${dataVenda}</div>
+          <div>🔢 Números: <span class="numeros-lista">${listaNumeros}</span></div>
+          <div>📦 Quantidade: ${venda.total_numeros} números</div>
+          <div class="venda-valor">💰 Valor: R$ ${valorTotal}</div>
+        </div>
+      `;
+    }
+    html += `</div>`;
+    resultadoDiv.innerHTML = html;
+  }
+
+  // Autocomplete
+  let timeoutId = null;
+  document.getElementById('buscaNome').addEventListener('input', (e) => {
+    const termo = e.target.value.toLowerCase();
+    const sugestoesDiv = document.getElementById('sugestoes');
+    
+    if (timeoutId) clearTimeout(timeoutId);
+    
+    timeoutId = setTimeout(() => {
+      if (termo.length < 2) {
+        sugestoesDiv.style.display = 'none';
+        sugestoesDiv.innerHTML = '';
+        return;
+      }
+      
+      const filtrados = todosCompradores.filter(nome => nome.toLowerCase().includes(termo));
+      if (filtrados.length === 0) {
+        sugestoesDiv.style.display = 'none';
+        sugestoesDiv.innerHTML = '';
+        return;
+      }
+      
+      sugestoesDiv.innerHTML = filtrados.map(nome => `<div class="sugestao-item" data-nome="${nome}">${nome}</div>`).join('');
+      sugestoesDiv.style.display = 'block';
+      
+      document.querySelectorAll('.sugestao-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const nomeSelecionado = el.getAttribute('data-nome');
+          document.getElementById('buscaNome').value = nomeSelecionado;
+          sugestoesDiv.style.display = 'none';
+          buscarVendasPorComprador(nomeSelecionado);
+        });
+      });
+    }, 300);
+  });
+
   function atualizarContador() {
     if (!configAtual?.data_sorteio) return;
     const diff = new Date(configAtual.data_sorteio).getTime() - new Date().getTime();
@@ -256,15 +381,20 @@
     }
   }
 
-  document.getElementById('meusNumerosBtn').onclick = () => document.getElementById('modalBusca').style.display = 'flex';
-  document.getElementById('fecharBusca').onclick = () => { document.getElementById('modalBusca').style.display = 'none'; document.getElementById('resultadoBusca').innerHTML = ''; };
-  document.getElementById('confirmarBusca').onclick = async () => {
-    const nome = document.getElementById('buscaNome').value.trim();
-    if (!nome) return alert('Digite parte do nome');
-    const data = await fetchAPI(`numeros?select=numero&nome_comprador=ilike.%25${encodeURIComponent(nome)}%25`);
-    const resultadoDiv = document.getElementById('resultadoBusca');
-    if (!data.length) resultadoDiv.innerHTML = '❌ Nenhum número encontrado.';
-    else resultadoDiv.innerHTML = `✅ Seus números: ${data.map(n => n.numero).sort((a,b)=>a-b).join(', ')}`;
+  document.getElementById('meusNumerosBtn').onclick = async () => {
+    await carregarCompradores();
+    document.getElementById('buscaNome').value = '';
+    document.getElementById('sugestoes').innerHTML = '';
+    document.getElementById('sugestoes').style.display = 'none';
+    document.getElementById('resultadoBusca').innerHTML = '';
+    document.getElementById('modalBusca').style.display = 'flex';
+  };
+  document.getElementById('fecharBusca').onclick = () => {
+    document.getElementById('modalBusca').style.display = 'none';
+    document.getElementById('resultadoBusca').innerHTML = '';
+    document.getElementById('buscaNome').value = '';
+    document.getElementById('sugestoes').innerHTML = '';
+    document.getElementById('sugestoes').style.display = 'none';
   };
   document.getElementById('whatsappBtn').onclick = () => {
     let texto = configAtual?.texto_compartilhamento || 'Participe da rifa online! 🎟️';
@@ -273,6 +403,7 @@
   };
 
   async function iniciar() {
+    await carregarValorPonto();
     await carregarConfig();
     await carregarNumeros();
     setInterval(async () => { await carregarConfig(); await carregarNumeros(); atualizarContador(); }, 5000);
