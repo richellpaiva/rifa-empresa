@@ -661,3 +661,348 @@
           }
           button {
             display: block;
+            width: 200px;
+            margin: 20px auto 0;
+            padding: 10px;
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 14px;
+          }
+          button:hover { background: #0d47a1; }
+          @media print {
+            button { display: none; }
+            body { background: white; padding: 0; }
+            .recibo { box-shadow: none; padding: 15px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="recibo">
+          <h1>${tituloRifa}</h1>
+          <div class="info">
+            <p><strong>📄 RECIBO DE COMPRA</strong></p>
+            <p><strong>Código da venda:</strong> #${vendaId}</p>
+            <p><strong>Data da compra:</strong> ${dataVendaFormatada}</p>
+          </div>
+          <table class="detalhes">
+            <tr><td>Comprador(a)</td><td>${comprador}</td></tr>
+            <tr><td>Números adquiridos</td><td>${listaNumeros}</td></tr>
+            <tr><td>Quantidade de números</td><td>${totalNumeros}</td></tr>
+            <tr><td>Valor por ponto</td><td>R$ ${valorPonto.toFixed(2).replace('.', ',')}</td></tr>
+            <tr><td>Data do sorteio</td><td>${textoDataSorteio}</td></tr>
+          </table>
+          <div class="total">
+            VALOR TOTAL: R$ ${valorTotal}
+          </div>
+          <div class="footer">
+            <p>Este recibo é a confirmação da sua compra. Guarde-o até o dia do sorteio.</p>
+            <p>Boa sorte! 🍀</p>
+          </div>
+          <button onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+        </div>
+        <script>
+          document.querySelector('button')?.addEventListener('click', () => window.print());
+        <\/script>
+      </body>
+      </html>
+    `;
+    
+    const novaJanela = window.open();
+    novaJanela.document.write(reciboHTML);
+    novaJanela.document.close();
+  }
+
+  async function editarVenda(vendaId, nomeAtual) {
+    showLoading('Carregando dados da venda...');
+    const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
+    const numsAtuais = numerosVenda.map(n => n.numero).sort((a,b)=>a-b);
+    hideLoading();
+    
+    const opcao = prompt(`Venda #${vendaId}\nComprador: ${nomeAtual}\nNúmeros: ${numsAtuais.join(',')}\n\n1 - Editar nome\n2 - Editar números`);
+    
+    if (opcao === '1') {
+      const novoNome = prompt('Novo nome:', nomeAtual);
+      if (novoNome && novoNome !== nomeAtual) {
+        showLoading('Atualizando nome...');
+        await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ comprador: novoNome }) });
+        for (const num of numsAtuais) await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: novoNome }) });
+        await registrarLog(`Editou venda ${vendaId} nome: ${novoNome}`);
+        hideLoading();
+        mostrarMensagem('vendaMensagem', '✅ Nome atualizado!', 'sucesso');
+        carregarVendas(); carregarNumeros(); atualizarEstatisticas();
+      }
+    } else if (opcao === '2') {
+      const novosInput = prompt('Digite os novos números (separados por vírgula):', numsAtuais.join(','));
+      if (novosInput) {
+        const novosNumeros = novosInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n>=1 && n<=1000);
+        if (novosNumeros.length) {
+          showLoading('Verificando disponibilidade dos números...');
+          const numerosOcupados = [];
+          for (const num of novosNumeros) {
+            if (!numsAtuais.includes(num)) {
+              const verificar = await fetchSupabase(`numeros?select=nome_comprador&numero=eq.${num}`);
+              if (verificar && verificar[0] && verificar[0].nome_comprador) {
+                numerosOcupados.push(num);
+              }
+            }
+          }
+          if (numerosOcupados.length > 0) {
+            hideLoading();
+            mostrarMensagem('vendaMensagem', `❌ Números já vendidos: ${numerosOcupados.join(', ')}. Remova-os e tente novamente.`, 'erro');
+            return;
+          }
+          showLoading('Atualizando números da venda...');
+          for (const num of numsAtuais) {
+            await fetchSupabase(`venda_numeros?numero=eq.${num}&venda_id=eq.${vendaId}`, { method: 'DELETE' });
+            await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
+          }
+          for (const num of novosNumeros) {
+            await fetchSupabase('venda_numeros', { method: 'POST', body: JSON.stringify({ venda_id: vendaId, numero: num }) });
+            await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nomeAtual, venda_id: vendaId }) });
+          }
+          await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ total_numeros: novosNumeros.length }) });
+          await registrarLog(`Editou venda ${vendaId} números: ${novosNumeros.join(',')}`);
+          hideLoading();
+          mostrarMensagem('vendaMensagem', '✅ Números atualizados!', 'sucesso');
+          carregarVendas(); carregarNumeros(); atualizarEstatisticas();
+        }
+      }
+    }
+  }
+
+  async function excluirVenda(vendaId) {
+    if (!confirm('Excluir esta venda? Os números voltarão a ficar disponíveis.')) return;
+    try {
+      showLoading('Excluindo venda...');
+      const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
+      for (const item of numerosVenda) await fetchSupabase(`numeros?numero=eq.${item.numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
+      await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'DELETE' });
+      await registrarLog(`Excluiu venda ${vendaId}`);
+      hideLoading();
+      mostrarMensagem('vendaMensagem', '✅ Venda excluída!', 'sucesso');
+      carregarVendas(); carregarNumeros(); atualizarEstatisticas();
+    } catch (e) { hideLoading(); mostrarMensagem('vendaMensagem', 'Erro: ' + e.message, 'erro'); }
+  }
+
+  async function venderNumerosSelecionados(nomeComprador) {
+    const numeros = Array.from(numerosSelecionados);
+    if (numeros.length === 0) throw new Error('Nenhum número selecionado');
+    
+    const numerosIndisponiveis = [];
+    for (const num of numeros) {
+      const encontrado = numerosAtuais.find(n => n.numero === num);
+      if (!encontrado || encontrado.nome_comprador) {
+        numerosIndisponiveis.push(num);
+      }
+    }
+    if (numerosIndisponiveis.length > 0) {
+      throw new Error(`Os seguintes números já foram vendidos: ${numerosIndisponiveis.join(', ')}`);
+    }
+    
+    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/vendas`, { method: 'POST', headers, body: JSON.stringify({ comprador: nomeComprador, data_venda: new Date(), total_numeros: numeros.length, usuario_admin: usuarioLogado?.usuario }) });
+    if (!insertRes.ok) throw new Error('Erro ao registrar venda');
+    const location = insertRes.headers.get('location');
+    let vendaId = null;
+    if (location) { const match = location.match(/vendas[?]id=eq.(\d+)/); if (match) vendaId = match[1]; }
+    if (!vendaId) { const ultimasVendas = await fetchSupabase(`vendas?usuario_admin=eq.${usuarioLogado.usuario}&order=id.desc&limit=1`); if (ultimasVendas && ultimasVendas[0]) vendaId = ultimasVendas[0].id; else throw new Error('Não foi possível identificar a venda'); }
+    for (const num of numeros) {
+      await fetchSupabase('venda_numeros', { method: 'POST', body: JSON.stringify({ venda_id: vendaId, numero: num }) });
+      await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nomeComprador, data_compra: new Date(), venda_id: vendaId }) });
+    }
+    numerosSelecionados.clear();
+    await carregarNumeros();
+    return numeros.length;
+  }
+
+  async function carregarNumeros() {
+    const data = await fetchSupabase('numeros?order=numero.asc');
+    numerosAtuais = data || [];
+    const grid = document.getElementById('listaNumeros');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (const num of numerosAtuais) {
+      const div = document.createElement('div');
+      div.className = 'numero-item';
+      const isVendido = !!num.nome_comprador;
+      const isSelecionado = numerosSelecionados.has(num.numero);
+      if (isVendido) { div.classList.add('numero-vendido'); div.title = `Vendido para: ${num.nome_comprador}`; }
+      else if (isSelecionado) { div.classList.add('numero-selecionado'); div.title = 'Clique para desmarcar'; }
+      else { div.classList.add('numero-livre'); div.title = 'Clique para selecionar'; }
+      div.textContent = num.numero;
+      if (!isVendido) { div.onclick = () => { if (numerosSelecionados.has(num.numero)) numerosSelecionados.delete(num.numero); else numerosSelecionados.add(num.numero); carregarNumeros(); }; }
+      grid.appendChild(div);
+    }
+    await atualizarEstatisticas();
+  }
+
+  async function carregarConfig() {
+    const data = await fetchSupabase('config?id=eq.1');
+    if (data && data[0]) {
+      const c = data[0];
+      document.getElementById('configTitulo').value = c.titulo || 'Rifa Online';
+      document.getElementById('configChavePix').value = c.chave_pix || '';
+      document.getElementById('configTexto').value = c.texto_explicativo || '';
+      document.getElementById('configWhatsapp').value = c.texto_compartilhamento || '';
+      document.getElementById('configTipoSorteio').value = c.tipo_sorteio || 'tempo';
+      if (c.data_sorteio) document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0,16);
+      if (c.foto_url) document.getElementById('fotoPreview').innerHTML = `<img src="${c.foto_url}" style="max-width:150px; border-radius:20px;">`;
+      
+      // Mostrar/esconder campo de data conforme tipo de sorteio
+      const campoData = document.getElementById('campoDataSorteio');
+      if (c.tipo_sorteio === 'pontos') {
+        campoData.style.display = 'none';
+      } else {
+        campoData.style.display = 'block';
+      }
+    }
+  }
+
+  // Mostrar/esconder campo de data quando mudar o tipo de sorteio
+  document.getElementById('configTipoSorteio').addEventListener('change', (e) => {
+    const campoData = document.getElementById('campoDataSorteio');
+    if (e.target.value === 'pontos') {
+      campoData.style.display = 'none';
+    } else {
+      campoData.style.display = 'block';
+    }
+  });
+
+  async function carregarLogs() {
+    const data = await fetchSupabase('logs?order=data_hora.desc&limit=15');
+    const logsDiv = document.getElementById('logsLista');
+    logsDiv.innerHTML = data && data.length ? data.map(l => `📌 ${new Date(l.data_hora).toLocaleString()} - ${l.acao} (${l.usuario})`).join('<br>') : 'Nenhum log.';
+  }
+
+  async function fazerLogin(usuario, senha) {
+    const data = await fetchSupabase(`usuarios_admin?usuario=eq.${encodeURIComponent(usuario)}&senha=eq.${encodeURIComponent(senha)}`);
+    if (!data || data.length === 0) throw new Error('Usuário ou senha inválidos');
+    return data[0];
+  }
+
+  function exportarExcel() {
+    fetchSupabase('vendas?order=data_venda.desc').then(async vendas => {
+      const dados = [];
+      for (const v of vendas) {
+        const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${v.id}`);
+        const listaNumeros = numerosVenda.map(n => n.numero).join(',');
+        dados.push({ 
+          Codigo: v.id, 
+          Comprador: v.comprador, 
+          Data: new Date(v.data_venda).toLocaleString(), 
+          Quantidade: v.total_numeros, 
+          Numeros: listaNumeros, 
+          Valor: `R$ ${(v.total_numeros * valorPonto).toFixed(2).replace('.', ',')}`
+        });
+      }
+      const ws = XLSX.utils.json_to_sheet(dados);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Vendas');
+      XLSX.writeFile(wb, `vendas_${new Date().toISOString().slice(0,19)}.xlsx`);
+    });
+  }
+
+  // EVENTOS
+  document.getElementById('btnLogin').onclick = async () => {
+    const usuario = document.getElementById('loginUsuario').value.trim();
+    const senha = document.getElementById('loginSenha').value;
+    try {
+      showLoading('Verificando login...');
+      const user = await fazerLogin(usuario, senha);
+      usuarioLogado = user;
+      document.getElementById('telaLogin').style.display = 'none';
+      document.getElementById('painelAdmin').style.display = 'block';
+      document.getElementById('usuarioInfo').innerHTML = `✅ Logado como: ${user.nome || user.usuario}`;
+      await registrarLog('Login');
+      await carregarTotalNumeros();
+      await carregarValorPonto();
+      await carregarNumeros();
+      await carregarConfig();
+      await carregarLogs();
+      await carregarVendas();
+      hideLoading();
+    } catch(e) { hideLoading(); mostrarMensagem('loginMensagem', e.message, 'erro'); }
+  };
+  document.getElementById('btnLogout').onclick = () => location.reload();
+  document.getElementById('btnAtualizarTotal').onclick = async () => {
+    const novoTotal = parseInt(document.getElementById('totalNumerosConfig').value);
+    if (isNaN(novoTotal)) return mostrarMensagem('totalMensagem', 'Digite um número válido', 'erro');
+    if (confirm(`Alterar total para ${novoTotal} números?`)) {
+      showLoading(`Atualizando para ${novoTotal} números...`);
+      try { await atualizarTotalNumeros(novoTotal); await atualizarEstatisticas(); hideLoading(); }
+      catch(e) { hideLoading(); mostrarMensagem('totalMensagem', 'Erro: ' + e.message, 'erro'); }
+    }
+  };
+  document.getElementById('btnSalvarValor').onclick = salvarValorPonto;
+  document.getElementById('btnPesquisarVenda').onclick = () => carregarVendas(document.getElementById('pesquisarComprador').value.trim());
+  document.getElementById('btnMostrarTodasVendas').onclick = () => carregarVendas('');
+  document.getElementById('btnExportarExcel').onclick = exportarExcel;
+  document.getElementById('btnExportarPDF').onclick = () => alert('PDF gerado (função em desenvolvimento)');
+  document.getElementById('limparSelecaoBtn').onclick = () => { numerosSelecionados.clear(); carregarNumeros(); };
+  document.getElementById('venderSelecionadosBtn').onclick = async () => {
+    const nome = document.getElementById('venderNome').value.trim();
+    if (!nome) return mostrarMensagem('venderMensagem', 'Digite o nome do comprador', 'erro');
+    if (numerosSelecionados.size === 0) return mostrarMensagem('venderMensagem', 'Selecione números', 'erro');
+    showLoading(`Verificando disponibilidade...`);
+    try {
+      const qtd = await venderNumerosSelecionados(nome);
+      hideLoading();
+      mostrarMensagem('venderMensagem', `✅ ${qtd} números vendidos para ${nome}`, 'sucesso');
+      document.getElementById('venderNome').value = '';
+      await registrarLog(`Vendeu ${qtd} números para ${nome}`);
+      await carregarVendas(); await carregarLogs(); await atualizarEstatisticas();
+    } catch(e) { hideLoading(); mostrarMensagem('venderMensagem', e.message, 'erro'); }
+  };
+  document.getElementById('btnSalvarConfig').onclick = async () => {
+    const titulo = document.getElementById('configTitulo').value;
+    const chave = document.getElementById('configChavePix').value;
+    const texto = document.getElementById('configTexto').value;
+    const dataSorteio = document.getElementById('configDataSorteio').value;
+    const whats = document.getElementById('configWhatsapp').value;
+    const tipoSorteio = document.getElementById('configTipoSorteio').value;
+    
+    try {
+      await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ 
+        titulo, 
+        chave_pix: chave, 
+        texto_explicativo: texto, 
+        data_sorteio: tipoSorteio === 'tempo' ? (dataSorteio || null) : null,
+        texto_compartilhamento: whats,
+        tipo_sorteio: tipoSorteio
+      }) });
+      mostrarMensagem('configMensagem', '✅ Configurações salvas', 'sucesso');
+      await registrarLog('Salvou configurações');
+    } catch(e) { mostrarMensagem('configMensagem', 'Erro ao salvar', 'erro'); }
+  };
+  document.getElementById('btnEnviarFoto').onclick = async () => {
+    const file = document.getElementById('fotoArquivo').files[0];
+    if (!file) return mostrarMensagem('fotoMensagem', 'Selecione uma foto', 'erro');
+    showLoading('Enviando foto...');
+    try {
+      const fileName = `${Date.now()}_${file.name}`;
+      const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/brindes/${fileName}`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }, body: file });
+      if (!uploadRes.ok) throw new Error();
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/brindes/${fileName}`;
+      await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ foto_url: publicUrl }) });
+      hideLoading();
+      mostrarMensagem('fotoMensagem', '✅ Foto enviada', 'sucesso');
+      document.getElementById('fotoPreview').innerHTML = `<img src="${publicUrl}" style="max-width:150px; border-radius:20px;">`;
+      await registrarLog('Enviou foto do brinde');
+    } catch(e) { hideLoading(); mostrarMensagem('fotoMensagem', 'Erro no upload', 'erro'); }
+  };
+  document.getElementById('btnDefinirGanhador').onclick = async () => {
+    const num = parseInt(document.getElementById('ganhadorNumero').value), nome = document.getElementById('ganhadorNome').value.trim();
+    if (!num || !nome) return mostrarMensagem('ganhadorMensagem', 'Preencha número e nome', 'erro');
+    if (confirm(`Definir ${nome} como ganhador do número ${num}?`)) {
+      await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ ganhador_nome: nome, ganhador_numero: num, rifa_encerrada: true }) });
+      mostrarMensagem('ganhadorMensagem', `✅ Ganhador: ${nome} (nº ${num})`, 'sucesso');
+      await registrarLog(`Ganhador: ${nome} nº ${num}`);
+    }
+  };
+  document.getElementById('btnEncerrar').onclick = async () => { if (confirm('Encerrar a rifa?')) { await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ rifa_encerrada: true }) }); await registrarLog('Encerrou rifa'); alert('Rifa encerrada'); } };
+  document.getElementById('btnReabrir').onclick = async () => { if (confirm('Reabrir a rifa?')) { await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ rifa_encerrada: false, ganhador_nome: null, ganhador_numero: null }) }); await registrarLog('Reabriu rifa'); alert('Rifa reaberta'); } };
+</script>
+</body>
+</html>
