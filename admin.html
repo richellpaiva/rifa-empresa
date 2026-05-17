@@ -105,6 +105,41 @@
     .estatisticas { flex: 1; }
     .valor-item { font-size: 18px; margin: 10px 0; }
     
+    /* TOOLTIP / DICA */
+    .campo-com-dica {
+      margin-bottom: 15px;
+    }
+    .campo-label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dica {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+      margin-bottom: 8px;
+      padding-left: 12px;
+      border-left: 3px solid #1976d2;
+    }
+    .icone-dica {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      background: #1976d2;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      font-size: 12px;
+      line-height: 18px;
+      cursor: pointer;
+    }
+    .icone-dica:hover {
+      background: #0d47a1;
+    }
+    
     /* LOADING OVERLAY */
     .loading-overlay {
       display: none;
@@ -185,26 +220,31 @@
           <div class="valor-item">✅ Números disponíveis: <span id="totalDisponiveisSpan">0</span></div>
         </div>
       </div>
-      <div style="margin-top: 15px;">
-        <label>Valor por ponto (R$):</label>
+      <div class="campo-com-dica">
+        <div class="campo-label">
+          <label>💰 Valor por ponto (R$)</label>
+          <span class="icone-dica" title="Defina o valor de cada número da rifa. Ex: 10,00 = cada número custa R$ 10,00">?</span>
+        </div>
         <input type="number" id="valorPontoInput" step="0.01" placeholder="Ex: 10,00">
+        <div class="dica">💡 Defina o valor de cada número. O total arrecadado será calculado automaticamente.</div>
         <button id="btnSalvarValor" class="btn-info">Salvar valor</button>
       </div>
     </div>
 
     <div class="card">
       <h2>⚙️ Configurar total de números</h2>
-      <div style="display: flex; gap: 10px; align-items: flex-end;">
-        <div style="flex:2">
-          <label>Total de números (1 a 1000):</label>
-          <input type="number" id="totalNumerosConfig" min="1" max="1000" step="1">
+      <div class="campo-com-dica">
+        <div class="campo-label">
+          <label>Total de números (1 a 1000)</label>
+          <span class="icone-dica" title="Quantos números terá sua rifa. Ex: 100 = números de 1 a 100">?</span>
         </div>
-        <div style="flex:1">
-          <button id="btnAtualizarTotal" class="btn-warning">Atualizar rifa</button>
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+          <input type="number" id="totalNumerosConfig" min="1" max="1000" step="1" style="flex:2;">
+          <button id="btnAtualizarTotal" class="btn-warning" style="flex:1;">Atualizar rifa</button>
         </div>
+        <div class="dica">💡 Altere a quantidade total de números. Números já vendidos são mantidos. Novos números serão adicionados automaticamente.</div>
       </div>
       <div id="totalMensagem" class="mensagem"></div>
-      <small>⚠️ Números vendidos são mantidos. Números não vendidos acima do novo total serão removidos. Novos números são adicionados automaticamente.</small>
     </div>
 
     <div class="card">
@@ -215,7 +255,14 @@
           <button id="venderSelecionadosBtn" class="btn-success">Vender selecionados</button>
         </div>
       </div>
-      <input type="text" id="venderNome" placeholder="Nome completo do comprador" style="margin-bottom: 15px;">
+      <div class="campo-com-dica">
+        <div class="campo-label">
+          <label>Nome completo do comprador</label>
+          <span class="icone-dica" title="Digite o nome da pessoa que está comprando os números">?</span>
+        </div>
+        <input type="text" id="venderNome" placeholder="Ex: João Silva">
+        <div class="dica">💡 Clique nos números disponíveis (azul claro) para selecionar vários. Depois clique em "Vender selecionados".</div>
+      </div>
       <div id="listaNumeros" class="grid-numeros"></div>
       <div id="venderMensagem" class="mensagem"></div>
     </div>
@@ -242,18 +289,78 @@
 
     <div class="card">
       <h2>⚙️ Configurações da rifa</h2>
-      <input type="text" id="configTitulo" placeholder="Título" value="Rifa Online">
-      <input type="text" id="configChavePix" placeholder="Chave PIX">
-      <textarea id="configTexto" rows="3" placeholder="Texto explicativo"></textarea>
-      <input type="datetime-local" id="configDataSorteio">
-      <input type="text" id="configWhatsapp" placeholder="Texto do WhatsApp">
+      
+      <div class="campo-com-dica">
+        <div class="campo-label">
+          <label>🏷️ Título da rifa</label>
+          <span class="icone-dica" title="Nome que aparecerá no topo da página pública">?</span>
+        </div>
+        <input type="text" id="configTitulo" placeholder="Ex: Rifa do Natal">
+        <div class="dica">💡 Este título será exibido na página principal da rifa.</div>
+      </div>
+      
+      <div class="campo-com-dica">
+        <div class="campo-label">
+          <label>💰 Chave PIX</label>
+          <span class="icone-dica" title="Sua chave PIX para receber os pagamentos">?</span>
+        </div>
+        <input type="text" id="configChavePix" placeholder="Ex: email@dominio.com ou telefone">
+        <div class="dica">💡 Os compradores usarão esta chave para pagar os números.</div>
+      </div>
+      
+      <div class="campo-com-dica">
+        <div class="campo-label">
+          <label>📝 Texto explicativo</label>
+          <span class="icone-dica" title="Descrição da rifa, prêmios, regras, etc.">?</span>
+        </div>
+        <textarea id="configTexto" rows="3" placeholder="Descreva sua rifa, o prêmio, as regras..."></textarea>
+        <div class="dica">💡 Este texto aparece abaixo do contador na página principal.</div>
+      </div>
+      
+      <div class="campo-com-dica">
+        <div class="campo-label">
+          <label>📱 Texto do WhatsApp</label>
+          <span class="icone-dica" title="Mensagem que será enviada ao compartilhar a rifa">?</span>
+        </div>
+        <input type="text" id="configWhatsapp" placeholder="Ex: Participe da rifa! Sorteio incrível!">
+        <div class="dica">💡 Quando alguém clicar em "Compartilhar", esta mensagem será enviada junto com o link.</div>
+      </div>
+      
+      <div class="campo-com-dica">
+        <div class="campo-label">
+          <label>🎯 Tipo de sorteio</label>
+          <span class="icone-dica" title="Escolha como será definido o momento do sorteio">?</span>
+        </div>
+        <select id="configTipoSorteio">
+          <option value="tempo">⏰ Por tempo (data/hora fixa)</option>
+          <option value="pontos">🎟️ Por pontos disponíveis (quando vender todos)</option>
+        </select>
+        <div class="dica">💡 "Por tempo": o sorteio ocorre na data/hora definida. "Por pontos disponíveis": o sorteio ocorre automaticamente quando todos os números forem vendidos.</div>
+      </div>
+      
+      <div id="campoDataSorteio" class="campo-com-dica">
+        <div class="campo-label">
+          <label>📅 Data e hora do sorteio</label>
+          <span class="icone-dica" title="Data e hora exata do sorteio (usado apenas no modo 'Por tempo')">?</span>
+        </div>
+        <input type="datetime-local" id="configDataSorteio">
+        <div class="dica">💡 Defina quando será realizado o sorteio. O contador regressivo será exibido na página principal.</div>
+      </div>
+      
       <button id="btnSalvarConfig">💾 Salvar configurações</button>
       <div id="configMensagem" class="mensagem"></div>
     </div>
 
     <div class="card">
       <h2>🖼️ Foto do brinde</h2>
-      <input type="file" id="fotoArquivo" accept="image/*">
+      <div class="campo-com-dica">
+        <div class="campo-label">
+          <label>📸 Imagem do prêmio</label>
+          <span class="icone-dica" title="Foto do brinde que será sorteado">?</span>
+        </div>
+        <input type="file" id="fotoArquivo" accept="image/*">
+        <div class="dica">💡 Envie uma foto do prêmio. Ela aparecerá na página principal.</div>
+      </div>
       <button id="btnEnviarFoto">📤 Enviar foto</button>
       <div id="fotoPreview"></div>
       <div id="fotoMensagem" class="mensagem"></div>
@@ -261,11 +368,20 @@
 
     <div class="card">
       <h2>🏆 Definir ganhador</h2>
-      <div style="display: flex; gap: 10px;">
-        <input type="number" id="ganhadorNumero" placeholder="Número">
-        <input type="text" id="ganhadorNome" placeholder="Nome">
-        <button id="btnDefinirGanhador" class="btn-success">Definir</button>
+      <div class="campo-com-dica">
+        <div class="campo-label">
+          <label>Número sorteado</label>
+          <span class="icone-dica" title="Número que foi sorteado">?</span>
+        </div>
+        <input type="number" id="ganhadorNumero" placeholder="Ex: 42">
+        <div class="campo-label">
+          <label>Nome do ganhador</label>
+          <span class="icone-dica" title="Nome da pessoa que ganhou">?</span>
+        </div>
+        <input type="text" id="ganhadorNome" placeholder="Ex: Maria Santos">
+        <div class="dica">💡 Após definir o ganhador, a página principal exibirá apenas as informações do sorteio.</div>
       </div>
+      <button id="btnDefinirGanhador" class="btn-success">Definir ganhador</button>
       <div id="ganhadorMensagem" class="mensagem"></div>
     </div>
 
@@ -273,6 +389,7 @@
       <h2>🔒 Controle da rifa</h2>
       <button id="btnEncerrar" class="btn-danger">Encerrar rifa</button>
       <button id="btnReabrir">Reabrir rifa</button>
+      <div class="dica" style="margin-top: 10px;">💡 "Encerrar rifa" impede novas vendas. "Reabrir rifa" permite vendas novamente.</div>
     </div>
 
     <div class="card">
@@ -340,7 +457,6 @@
     const vendidos = todos.filter(n => n.nome_comprador).length;
     const disponiveis = todos.length - vendidos;
     
-    // Calcular total arrecadado = soma de todas as vendas (quantidade * valorPonto)
     const vendas = await fetchSupabase('vendas?select=id,total_numeros');
     let totalArrecadado = 0;
     if (vendas && vendas.length) {
@@ -448,18 +564,22 @@
   async function gerarRecibo(vendaId, comprador, dataVenda, totalNumeros, listaNumeros) {
     showLoading('Gerando recibo...');
     
-    // Buscar dados da configuração (título, data do sorteio)
     const configData = await fetchSupabase('config?id=eq.1');
     const config = configData && configData[0] ? configData[0] : {};
     const tituloRifa = config.titulo || 'Rifa Online';
     const dataSorteio = config.data_sorteio ? new Date(config.data_sorteio).toLocaleString() : 'Não definida';
+    const tipoSorteio = config.tipo_sorteio || 'tempo';
+    
+    let textoDataSorteio = dataSorteio;
+    if (tipoSorteio === 'pontos') {
+      textoDataSorteio = 'Sorteio automático quando todos os números forem vendidos';
+    }
     
     const valorTotal = (totalNumeros * valorPonto).toFixed(2).replace('.', ',');
     const dataVendaFormatada = new Date(dataVenda).toLocaleString();
     
     hideLoading();
     
-    // Criar o HTML do recibo
     const reciboHTML = `
       <!DOCTYPE html>
       <html>
@@ -541,317 +661,3 @@
           }
           button {
             display: block;
-            width: 200px;
-            margin: 20px auto 0;
-            padding: 10px;
-            background: #1976d2;
-            color: white;
-            border: none;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 14px;
-          }
-          button:hover { background: #0d47a1; }
-          @media print {
-            button { display: none; }
-            body { background: white; padding: 0; }
-            .recibo { box-shadow: none; padding: 15px; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="recibo">
-          <h1>${tituloRifa}</h1>
-          <div class="info">
-            <p><strong>📄 RECIBO DE COMPRA</strong></p>
-            <p><strong>Código da venda:</strong> #${vendaId}</p>
-            <p><strong>Data da compra:</strong> ${dataVendaFormatada}</p>
-          </div>
-          <table class="detalhes">
-            <tr><td>Comprador(a)</td><td>${comprador}</td></tr>
-            <tr><td>Números adquiridos</td><td>${listaNumeros}</td></tr>
-            <tr><td>Quantidade de números</td><td>${totalNumeros}</td></tr>
-            <tr><td>Valor por ponto</td><td>R$ ${valorPonto.toFixed(2).replace('.', ',')}</td></tr>
-            <tr><td>Data do sorteio</td><td>${dataSorteio}</td></tr>
-          </table>
-          <div class="total">
-            VALOR TOTAL: R$ ${valorTotal}
-          </div>
-          <div class="footer">
-            <p>Este recibo é a confirmação da sua compra. Guarde-o até o dia do sorteio.</p>
-            <p>Boa sorte! 🍀</p>
-          </div>
-          <button onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
-        </div>
-        <script>
-          document.querySelector('button')?.addEventListener('click', () => window.print());
-        <\/script>
-      </body>
-      </html>
-    `;
-    
-    // Abrir nova janela com o recibo
-    const novaJanela = window.open();
-    novaJanela.document.write(reciboHTML);
-    novaJanela.document.close();
-  }
-
-  async function editarVenda(vendaId, nomeAtual) {
-    showLoading('Carregando dados da venda...');
-    const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
-    const numsAtuais = numerosVenda.map(n => n.numero).sort((a,b)=>a-b);
-    hideLoading();
-    
-    const opcao = prompt(`Venda #${vendaId}\nComprador: ${nomeAtual}\nNúmeros: ${numsAtuais.join(',')}\n\n1 - Editar nome\n2 - Editar números`);
-    
-    if (opcao === '1') {
-      const novoNome = prompt('Novo nome:', nomeAtual);
-      if (novoNome && novoNome !== nomeAtual) {
-        showLoading('Atualizando nome...');
-        await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ comprador: novoNome }) });
-        for (const num of numsAtuais) await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: novoNome }) });
-        await registrarLog(`Editou venda ${vendaId} nome: ${novoNome}`);
-        hideLoading();
-        mostrarMensagem('vendaMensagem', '✅ Nome atualizado!', 'sucesso');
-        carregarVendas(); carregarNumeros(); atualizarEstatisticas();
-      }
-    } else if (opcao === '2') {
-      const novosInput = prompt('Digite os novos números (separados por vírgula):', numsAtuais.join(','));
-      if (novosInput) {
-        const novosNumeros = novosInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n>=1 && n<=1000);
-        if (novosNumeros.length) {
-          showLoading('Verificando disponibilidade dos números...');
-          const numerosOcupados = [];
-          for (const num of novosNumeros) {
-            if (!numsAtuais.includes(num)) {
-              const verificar = await fetchSupabase(`numeros?select=nome_comprador&numero=eq.${num}`);
-              if (verificar && verificar[0] && verificar[0].nome_comprador) {
-                numerosOcupados.push(num);
-              }
-            }
-          }
-          if (numerosOcupados.length > 0) {
-            hideLoading();
-            mostrarMensagem('vendaMensagem', `❌ Números já vendidos: ${numerosOcupados.join(', ')}. Remova-os e tente novamente.`, 'erro');
-            return;
-          }
-          showLoading('Atualizando números da venda...');
-          for (const num of numsAtuais) {
-            await fetchSupabase(`venda_numeros?numero=eq.${num}&venda_id=eq.${vendaId}`, { method: 'DELETE' });
-            await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
-          }
-          for (const num of novosNumeros) {
-            await fetchSupabase('venda_numeros', { method: 'POST', body: JSON.stringify({ venda_id: vendaId, numero: num }) });
-            await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nomeAtual, venda_id: vendaId }) });
-          }
-          await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ total_numeros: novosNumeros.length }) });
-          await registrarLog(`Editou venda ${vendaId} números: ${novosNumeros.join(',')}`);
-          hideLoading();
-          mostrarMensagem('vendaMensagem', '✅ Números atualizados!', 'sucesso');
-          carregarVendas(); carregarNumeros(); atualizarEstatisticas();
-        }
-      }
-    }
-  }
-
-  async function excluirVenda(vendaId) {
-    if (!confirm('Excluir esta venda? Os números voltarão a ficar disponíveis.')) return;
-    try {
-      showLoading('Excluindo venda...');
-      const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
-      for (const item of numerosVenda) await fetchSupabase(`numeros?numero=eq.${item.numero}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
-      await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'DELETE' });
-      await registrarLog(`Excluiu venda ${vendaId}`);
-      hideLoading();
-      mostrarMensagem('vendaMensagem', '✅ Venda excluída!', 'sucesso');
-      carregarVendas(); carregarNumeros(); atualizarEstatisticas();
-    } catch (e) { hideLoading(); mostrarMensagem('vendaMensagem', 'Erro: ' + e.message, 'erro'); }
-  }
-
-  async function venderNumerosSelecionados(nomeComprador) {
-    const numeros = Array.from(numerosSelecionados);
-    if (numeros.length === 0) throw new Error('Nenhum número selecionado');
-    
-    const numerosIndisponiveis = [];
-    for (const num of numeros) {
-      const encontrado = numerosAtuais.find(n => n.numero === num);
-      if (!encontrado || encontrado.nome_comprador) {
-        numerosIndisponiveis.push(num);
-      }
-    }
-    if (numerosIndisponiveis.length > 0) {
-      throw new Error(`Os seguintes números já foram vendidos: ${numerosIndisponiveis.join(', ')}`);
-    }
-    
-    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/vendas`, { method: 'POST', headers, body: JSON.stringify({ comprador: nomeComprador, data_venda: new Date(), total_numeros: numeros.length, usuario_admin: usuarioLogado?.usuario }) });
-    if (!insertRes.ok) throw new Error('Erro ao registrar venda');
-    const location = insertRes.headers.get('location');
-    let vendaId = null;
-    if (location) { const match = location.match(/vendas[?]id=eq.(\d+)/); if (match) vendaId = match[1]; }
-    if (!vendaId) { const ultimasVendas = await fetchSupabase(`vendas?usuario_admin=eq.${usuarioLogado.usuario}&order=id.desc&limit=1`); if (ultimasVendas && ultimasVendas[0]) vendaId = ultimasVendas[0].id; else throw new Error('Não foi possível identificar a venda'); }
-    for (const num of numeros) {
-      await fetchSupabase('venda_numeros', { method: 'POST', body: JSON.stringify({ venda_id: vendaId, numero: num }) });
-      await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nomeComprador, data_compra: new Date(), venda_id: vendaId }) });
-    }
-    numerosSelecionados.clear();
-    await carregarNumeros();
-    return numeros.length;
-  }
-
-  async function carregarNumeros() {
-    const data = await fetchSupabase('numeros?order=numero.asc');
-    numerosAtuais = data || [];
-    const grid = document.getElementById('listaNumeros');
-    if (!grid) return;
-    grid.innerHTML = '';
-    for (const num of numerosAtuais) {
-      const div = document.createElement('div');
-      div.className = 'numero-item';
-      const isVendido = !!num.nome_comprador;
-      const isSelecionado = numerosSelecionados.has(num.numero);
-      if (isVendido) { div.classList.add('numero-vendido'); div.title = `Vendido para: ${num.nome_comprador}`; }
-      else if (isSelecionado) { div.classList.add('numero-selecionado'); div.title = 'Clique para desmarcar'; }
-      else { div.classList.add('numero-livre'); div.title = 'Clique para selecionar'; }
-      div.textContent = num.numero;
-      if (!isVendido) { div.onclick = () => { if (numerosSelecionados.has(num.numero)) numerosSelecionados.delete(num.numero); else numerosSelecionados.add(num.numero); carregarNumeros(); }; }
-      grid.appendChild(div);
-    }
-    await atualizarEstatisticas();
-  }
-
-  async function carregarConfig() {
-    const data = await fetchSupabase('config?id=eq.1');
-    if (data && data[0]) {
-      const c = data[0];
-      document.getElementById('configTitulo').value = c.titulo || 'Rifa Online';
-      document.getElementById('configChavePix').value = c.chave_pix || '';
-      document.getElementById('configTexto').value = c.texto_explicativo || '';
-      document.getElementById('configWhatsapp').value = c.texto_compartilhamento || '';
-      if (c.data_sorteio) document.getElementById('configDataSorteio').value = c.data_sorteio.slice(0,16);
-      if (c.foto_url) document.getElementById('fotoPreview').innerHTML = `<img src="${c.foto_url}" style="max-width:150px; border-radius:20px;">`;
-    }
-  }
-
-  async function carregarLogs() {
-    const data = await fetchSupabase('logs?order=data_hora.desc&limit=15');
-    const logsDiv = document.getElementById('logsLista');
-    logsDiv.innerHTML = data && data.length ? data.map(l => `📌 ${new Date(l.data_hora).toLocaleString()} - ${l.acao} (${l.usuario})`).join('<br>') : 'Nenhum log.';
-  }
-
-  async function fazerLogin(usuario, senha) {
-    const data = await fetchSupabase(`usuarios_admin?usuario=eq.${encodeURIComponent(usuario)}&senha=eq.${encodeURIComponent(senha)}`);
-    if (!data || data.length === 0) throw new Error('Usuário ou senha inválidos');
-    return data[0];
-  }
-
-  function exportarExcel() {
-    fetchSupabase('vendas?order=data_venda.desc').then(async vendas => {
-      const dados = [];
-      for (const v of vendas) {
-        const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${v.id}`);
-        const listaNumeros = numerosVenda.map(n => n.numero).join(',');
-        dados.push({ 
-          Codigo: v.id, 
-          Comprador: v.comprador, 
-          Data: new Date(v.data_venda).toLocaleString(), 
-          Quantidade: v.total_numeros, 
-          Numeros: listaNumeros, 
-          Valor: `R$ ${(v.total_numeros * valorPonto).toFixed(2).replace('.', ',')}`
-        });
-      }
-      const ws = XLSX.utils.json_to_sheet(dados);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Vendas');
-      XLSX.writeFile(wb, `vendas_${new Date().toISOString().slice(0,19)}.xlsx`);
-    });
-  }
-
-  // EVENTOS
-  document.getElementById('btnLogin').onclick = async () => {
-    const usuario = document.getElementById('loginUsuario').value.trim();
-    const senha = document.getElementById('loginSenha').value;
-    try {
-      showLoading('Verificando login...');
-      const user = await fazerLogin(usuario, senha);
-      usuarioLogado = user;
-      document.getElementById('telaLogin').style.display = 'none';
-      document.getElementById('painelAdmin').style.display = 'block';
-      document.getElementById('usuarioInfo').innerHTML = `✅ Logado como: ${user.nome || user.usuario}`;
-      await registrarLog('Login');
-      await carregarTotalNumeros();
-      await carregarValorPonto();
-      await carregarNumeros();
-      await carregarConfig();
-      await carregarLogs();
-      await carregarVendas();
-      hideLoading();
-    } catch(e) { hideLoading(); mostrarMensagem('loginMensagem', e.message, 'erro'); }
-  };
-  document.getElementById('btnLogout').onclick = () => location.reload();
-  document.getElementById('btnAtualizarTotal').onclick = async () => {
-    const novoTotal = parseInt(document.getElementById('totalNumerosConfig').value);
-    if (isNaN(novoTotal)) return mostrarMensagem('totalMensagem', 'Digite um número válido', 'erro');
-    if (confirm(`Alterar total para ${novoTotal} números?`)) {
-      showLoading(`Atualizando para ${novoTotal} números...`);
-      try { await atualizarTotalNumeros(novoTotal); await atualizarEstatisticas(); hideLoading(); }
-      catch(e) { hideLoading(); mostrarMensagem('totalMensagem', 'Erro: ' + e.message, 'erro'); }
-    }
-  };
-  document.getElementById('btnSalvarValor').onclick = salvarValorPonto;
-  document.getElementById('btnPesquisarVenda').onclick = () => carregarVendas(document.getElementById('pesquisarComprador').value.trim());
-  document.getElementById('btnMostrarTodasVendas').onclick = () => carregarVendas('');
-  document.getElementById('btnExportarExcel').onclick = exportarExcel;
-  document.getElementById('btnExportarPDF').onclick = () => alert('PDF gerado (função em desenvolvimento)');
-  document.getElementById('limparSelecaoBtn').onclick = () => { numerosSelecionados.clear(); carregarNumeros(); };
-  document.getElementById('venderSelecionadosBtn').onclick = async () => {
-    const nome = document.getElementById('venderNome').value.trim();
-    if (!nome) return mostrarMensagem('venderMensagem', 'Digite o nome do comprador', 'erro');
-    if (numerosSelecionados.size === 0) return mostrarMensagem('venderMensagem', 'Selecione números', 'erro');
-    showLoading(`Verificando disponibilidade...`);
-    try {
-      const qtd = await venderNumerosSelecionados(nome);
-      hideLoading();
-      mostrarMensagem('venderMensagem', `✅ ${qtd} números vendidos para ${nome}`, 'sucesso');
-      document.getElementById('venderNome').value = '';
-      await registrarLog(`Vendeu ${qtd} números para ${nome}`);
-      await carregarVendas(); await carregarLogs(); await atualizarEstatisticas();
-    } catch(e) { hideLoading(); mostrarMensagem('venderMensagem', e.message, 'erro'); }
-  };
-  document.getElementById('btnSalvarConfig').onclick = async () => {
-    const titulo = document.getElementById('configTitulo').value, chave = document.getElementById('configChavePix').value, texto = document.getElementById('configTexto').value, dataSorteio = document.getElementById('configDataSorteio').value, whats = document.getElementById('configWhatsapp').value;
-    try {
-      await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ titulo, chave_pix: chave, texto_explicativo: texto, data_sorteio: dataSorteio || null, texto_compartilhamento: whats }) });
-      mostrarMensagem('configMensagem', '✅ Configurações salvas', 'sucesso');
-      await registrarLog('Salvou configurações');
-    } catch(e) { mostrarMensagem('configMensagem', 'Erro ao salvar', 'erro'); }
-  };
-  document.getElementById('btnEnviarFoto').onclick = async () => {
-    const file = document.getElementById('fotoArquivo').files[0];
-    if (!file) return mostrarMensagem('fotoMensagem', 'Selecione uma foto', 'erro');
-    showLoading('Enviando foto...');
-    try {
-      const fileName = `${Date.now()}_${file.name}`;
-      const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/brindes/${fileName}`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }, body: file });
-      if (!uploadRes.ok) throw new Error();
-      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/brindes/${fileName}`;
-      await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ foto_url: publicUrl }) });
-      hideLoading();
-      mostrarMensagem('fotoMensagem', '✅ Foto enviada', 'sucesso');
-      document.getElementById('fotoPreview').innerHTML = `<img src="${publicUrl}" style="max-width:150px; border-radius:20px;">`;
-      await registrarLog('Enviou foto do brinde');
-    } catch(e) { hideLoading(); mostrarMensagem('fotoMensagem', 'Erro no upload', 'erro'); }
-  };
-  document.getElementById('btnDefinirGanhador').onclick = async () => {
-    const num = parseInt(document.getElementById('ganhadorNumero').value), nome = document.getElementById('ganhadorNome').value.trim();
-    if (!num || !nome) return mostrarMensagem('ganhadorMensagem', 'Preencha número e nome', 'erro');
-    if (confirm(`Definir ${nome} como ganhador do número ${num}?`)) {
-      await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ ganhador_nome: nome, ganhador_numero: num, rifa_encerrada: true }) });
-      mostrarMensagem('ganhadorMensagem', `✅ Ganhador: ${nome} (nº ${num})`, 'sucesso');
-      await registrarLog(`Ganhador: ${nome} nº ${num}`);
-    }
-  };
-  document.getElementById('btnEncerrar').onclick = async () => { if (confirm('Encerrar a rifa?')) { await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ rifa_encerrada: true }) }); await registrarLog('Encerrou rifa'); alert('Rifa encerrada'); } };
-  document.getElementById('btnReabrir').onclick = async () => { if (confirm('Reabrir a rifa?')) { await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ rifa_encerrada: false, ganhador_nome: null, ganhador_numero: null }) }); await registrarLog('Reabriu rifa'); alert('Rifa reaberta'); } };
-</script>
-</body>
-</html>
