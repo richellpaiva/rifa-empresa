@@ -179,15 +179,15 @@
       <div class="grafico-container">
         <canvas id="pieChart" width="200" height="200"></canvas>
         <div class="estatisticas">
-          <div class="valor-item">💰 Valor por ponto: R$ <span id="valorPontoSpan">0</span></div>
-          <div class="valor-item">📦 Total arrecadado: R$ <span id="totalArrecadadoSpan">0</span></div>
+          <div class="valor-item">💰 Valor por ponto: R$ <span id="valorPontoSpan">0,00</span></div>
+          <div class="valor-item">📦 Total arrecadado: R$ <span id="totalArrecadadoSpan">0,00</span></div>
           <div class="valor-item">🎟️ Números vendidos: <span id="totalVendidosSpan">0</span></div>
           <div class="valor-item">✅ Números disponíveis: <span id="totalDisponiveisSpan">0</span></div>
         </div>
       </div>
       <div style="margin-top: 15px;">
         <label>Valor por ponto (R$):</label>
-        <input type="number" id="valorPontoInput" step="0.01" placeholder="Ex: 10.00">
+        <input type="number" id="valorPontoInput" step="0.01" placeholder="Ex: 10,00">
         <button id="btnSalvarValor" class="btn-info">Salvar valor</button>
       </div>
     </div>
@@ -330,7 +330,7 @@
     if (data && data[0]) {
       valorPonto = data[0].valor_ponto || 0;
       document.getElementById('valorPontoInput').value = valorPonto;
-      document.getElementById('valorPontoSpan').innerText = valorPonto.toFixed(2);
+      document.getElementById('valorPontoSpan').innerText = valorPonto.toFixed(2).replace('.', ',');
     }
   }
 
@@ -339,24 +339,54 @@
     const todos = data || [];
     const vendidos = todos.filter(n => n.nome_comprador).length;
     const disponiveis = todos.length - vendidos;
-    const totalArrecadado = vendidos * valorPonto;
+    
+    // Calcular total arrecadado = soma de todas as vendas (quantidade * valorPonto)
+    const vendas = await fetchSupabase('vendas?select=id,total_numeros');
+    let totalArrecadado = 0;
+    if (vendas && vendas.length) {
+      totalArrecadado = vendas.reduce((acc, venda) => acc + (venda.total_numeros * valorPonto), 0);
+    }
+    
     document.getElementById('totalVendidosSpan').innerText = vendidos;
     document.getElementById('totalDisponiveisSpan').innerText = disponiveis;
-    document.getElementById('totalArrecadadoSpan').innerText = totalArrecadado.toFixed(2);
+    document.getElementById('totalArrecadadoSpan').innerText = totalArrecadado.toFixed(2).replace('.', ',');
+    
     if (chart) chart.destroy();
     const ctx = document.getElementById('pieChart').getContext('2d');
-    chart = new Chart(ctx, { type: 'pie', data: { labels: ['Vendidos', 'Disponíveis'], datasets: [{ data: [vendidos, disponiveis], backgroundColor: ['#1565c0', '#90caf9'] }] } });
+    chart = new Chart(ctx, { 
+      type: 'pie', 
+      data: { 
+        labels: ['Vendidos', 'Disponíveis'], 
+        datasets: [{ data: [vendidos, disponiveis], backgroundColor: ['#1565c0', '#90caf9'] }] 
+      },
+      options: {
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.raw || 0;
+                const total = vendidos + disponiveis;
+                const percentagem = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return `${label}: ${value} (${percentagem}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
   }
 
   async function salvarValorPonto() {
-    const novoValor = parseFloat(document.getElementById('valorPontoInput').value);
+    let novoValor = parseFloat(document.getElementById('valorPontoInput').value);
     if (isNaN(novoValor)) return mostrarMensagem('configMensagem', 'Digite um valor válido', 'erro');
     await fetchSupabase('config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ valor_ponto: novoValor }) });
     valorPonto = novoValor;
-    document.getElementById('valorPontoSpan').innerText = novoValor.toFixed(2);
+    document.getElementById('valorPontoSpan').innerText = novoValor.toFixed(2).replace('.', ',');
     await atualizarEstatisticas();
+    await carregarVendas();
     await registrarLog(`Alterou valor do ponto para R$ ${novoValor}`);
-    mostrarMensagem('configMensagem', `✅ Valor do ponto: R$ ${novoValor}`, 'sucesso');
+    mostrarMensagem('configMensagem', `✅ Valor do ponto: R$ ${novoValor.toFixed(2).replace('.', ',')}`, 'sucesso');
   }
 
   async function carregarTotalNumeros() {
@@ -385,7 +415,7 @@
     for (const v of vendas) {
       const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${v.id}`);
       const listaNumeros = numerosVenda.map(n => n.numero).join(', ');
-      const valorVenda = (v.total_numeros * valorPonto).toFixed(2);
+      const valorVenda = (v.total_numeros * valorPonto).toFixed(2).replace('.', ',');
       const row = tbody.insertRow();
       row.insertCell(0).innerText = v.id;
       row.insertCell(1).innerText = v.comprador;
@@ -401,7 +431,6 @@
     }
   }
 
-  // FUNÇÃO EDITAR VENDA COM LOADING E VALIDAÇÃO DE NÚMEROS JÁ VENDIDOS
   async function editarVenda(vendaId, nomeAtual) {
     showLoading('Carregando dados da venda...');
     const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${vendaId}`);
@@ -427,8 +456,6 @@
         const novosNumeros = novosInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n>=1 && n<=1000);
         if (novosNumeros.length) {
           showLoading('Verificando disponibilidade dos números...');
-          
-          // Verificar se os novos números estão disponíveis (não vendidos por outra venda)
           const numerosOcupados = [];
           for (const num of novosNumeros) {
             if (!numsAtuais.includes(num)) {
@@ -438,27 +465,20 @@
               }
             }
           }
-          
           if (numerosOcupados.length > 0) {
             hideLoading();
             mostrarMensagem('vendaMensagem', `❌ Números já vendidos: ${numerosOcupados.join(', ')}. Remova-os e tente novamente.`, 'erro');
             return;
           }
-          
           showLoading('Atualizando números da venda...');
-          
-          // Remover números antigos da venda
           for (const num of numsAtuais) {
             await fetchSupabase(`venda_numeros?numero=eq.${num}&venda_id=eq.${vendaId}`, { method: 'DELETE' });
             await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: null, venda_id: null }) });
           }
-          
-          // Adicionar novos números
           for (const num of novosNumeros) {
             await fetchSupabase('venda_numeros', { method: 'POST', body: JSON.stringify({ venda_id: vendaId, numero: num }) });
             await fetchSupabase(`numeros?numero=eq.${num}`, { method: 'PATCH', body: JSON.stringify({ nome_comprador: nomeAtual, venda_id: vendaId }) });
           }
-          
           await fetchSupabase(`vendas?id=eq.${vendaId}`, { method: 'PATCH', body: JSON.stringify({ total_numeros: novosNumeros.length }) });
           await registrarLog(`Editou venda ${vendaId} números: ${novosNumeros.join(',')}`);
           hideLoading();
@@ -483,12 +503,10 @@
     } catch (e) { hideLoading(); mostrarMensagem('vendaMensagem', 'Erro: ' + e.message, 'erro'); }
   }
 
-  // FUNÇÃO VENDER NÚMEROS SELECIONADOS COM VALIDAÇÃO DE DISPONIBILIDADE
   async function venderNumerosSelecionados(nomeComprador) {
     const numeros = Array.from(numerosSelecionados);
     if (numeros.length === 0) throw new Error('Nenhum número selecionado');
     
-    // Verificar disponibilidade de cada número
     const numerosIndisponiveis = [];
     for (const num of numeros) {
       const encontrado = numerosAtuais.find(n => n.numero === num);
@@ -496,7 +514,6 @@
         numerosIndisponiveis.push(num);
       }
     }
-    
     if (numerosIndisponiveis.length > 0) {
       throw new Error(`Os seguintes números já foram vendidos: ${numerosIndisponiveis.join(', ')}`);
     }
@@ -568,7 +585,14 @@
       for (const v of vendas) {
         const numerosVenda = await fetchSupabase(`venda_numeros?select=numero&venda_id=eq.${v.id}`);
         const listaNumeros = numerosVenda.map(n => n.numero).join(',');
-        dados.push({ Codigo: v.id, Comprador: v.comprador, Data: v.data_venda, Quantidade: v.total_numeros, Numeros: listaNumeros, Valor: (v.total_numeros * valorPonto).toFixed(2) });
+        dados.push({ 
+          Codigo: v.id, 
+          Comprador: v.comprador, 
+          Data: new Date(v.data_venda).toLocaleString(), 
+          Quantidade: v.total_numeros, 
+          Numeros: listaNumeros, 
+          Valor: `R$ ${(v.total_numeros * valorPonto).toFixed(2).replace('.', ',')}`
+        });
       }
       const ws = XLSX.utils.json_to_sheet(dados);
       const wb = XLSX.utils.book_new();
