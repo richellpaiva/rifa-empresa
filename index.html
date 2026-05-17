@@ -279,4 +279,182 @@
               break;
             }
           }
-          alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}\nCódigo da venda: #${
+          alert(`Número ${num.numero}\nComprador: ${num.nome_comprador}\nCódigo da venda: #${codigoVenda}`);
+        };
+      }
+      grid.appendChild(div);
+    }
+  }
+
+  async function carregarCompradores() {
+    const vendas = await fetchAPI('vendas?select=comprador');
+    if (vendas && vendas.length) {
+      const nomes = [...new Set(vendas.map(v => v.comprador))];
+      todosCompradores = nomes.sort();
+    }
+  }
+
+  async function buscarVendasPorComprador(nome) {
+    const vendas = await fetchAPI(`vendas?comprador=eq.${encodeURIComponent(nome)}&order=data_venda.desc`);
+    const resultadoDiv = document.getElementById('resultadoBusca');
+    if (!vendas || vendas.length === 0) {
+      resultadoDiv.innerHTML = '<p>❌ Nenhuma venda encontrada para este comprador.</p>';
+      return;
+    }
+    
+    let html = `<div style="text-align: left;">`;
+    for (const venda of vendas) {
+      const numerosVenda = await fetchAPI(`venda_numeros?select=numero&venda_id=eq.${venda.id}`);
+      const listaNumeros = numerosVenda.map(n => n.numero).sort((a,b)=>a-b).join(', ');
+      const valorTotal = (venda.total_numeros * valorPonto).toFixed(2).replace('.', ',');
+      const dataVenda = new Date(venda.data_venda).toLocaleString();
+      
+      html += `
+        <div class="venda-item">
+          <div class="venda-codigo">🎫 Venda #${venda.id}</div>
+          <div class="venda-data">📅 ${dataVenda}</div>
+          <div>🔢 Números: <span class="numeros-lista">${listaNumeros}</span></div>
+          <div>📦 Quantidade: ${venda.total_numeros} números</div>
+          <div class="venda-valor">💰 Valor: R$ ${valorTotal}</div>
+        </div>
+      `;
+    }
+    html += `</div>`;
+    resultadoDiv.innerHTML = html;
+  }
+
+  // Autocomplete
+  let timeoutId = null;
+  document.getElementById('buscaNome').addEventListener('input', (e) => {
+    const termo = e.target.value.toLowerCase();
+    const sugestoesDiv = document.getElementById('sugestoes');
+    
+    if (timeoutId) clearTimeout(timeoutId);
+    
+    timeoutId = setTimeout(() => {
+      if (termo.length < 2) {
+        sugestoesDiv.style.display = 'none';
+        sugestoesDiv.innerHTML = '';
+        return;
+      }
+      
+      const filtrados = todosCompradores.filter(nome => nome.toLowerCase().includes(termo));
+      if (filtrados.length === 0) {
+        sugestoesDiv.style.display = 'none';
+        sugestoesDiv.innerHTML = '';
+        return;
+      }
+      
+      sugestoesDiv.innerHTML = filtrados.map(nome => `<div class="sugestao-item" data-nome="${nome}">${nome}</div>`).join('');
+      sugestoesDiv.style.display = 'block';
+      
+      document.querySelectorAll('.sugestao-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const nomeSelecionado = el.getAttribute('data-nome');
+          document.getElementById('buscaNome').value = nomeSelecionado;
+          sugestoesDiv.style.display = 'none';
+          buscarVendasPorComprador(nomeSelecionado);
+        });
+      });
+    }, 300);
+  });
+
+  function atualizarContador() {
+    if (!configAtual) return;
+    
+    const tipoSorteio = configAtual.tipo_sorteio || 'tempo';
+    const contDiv = document.getElementById('contadorDiv');
+    const vendidos = numerosAtuais.filter(n => n.nome_comprador).length;
+    const disponiveis = totalNumeros - vendidos;
+    
+    // Se já tem ganhador definido
+    if (configAtual.ganhador_nome) {
+      contDiv.innerHTML = `🎉 GANHADOR: ${configAtual.ganhador_nome} - Número ${configAtual.ganhador_numero} 🎉`;
+      document.getElementById('numerosSection').style.display = 'none';
+      document.getElementById('ganhadorSection').style.display = 'block';
+      document.getElementById('ganhadorSection').innerHTML = `<h2>🏆 GANHADOR DEFINIDO 🏆</h2><div class="brinde-area"><img src="${configAtual.foto_url || ''}" style="max-width:250px"><p><strong>Brinde:</strong> ${configAtual.titulo || 'Rifa Online'}</p><p><strong>Número sorteado:</strong> ${configAtual.ganhador_numero}</p><p><strong>Ganhador:</strong> ${configAtual.ganhador_nome}</p></div>`;
+      return;
+    }
+    
+    // Se rifa encerrada sem ganhador
+    if (configAtual.rifa_encerrada) {
+      contDiv.innerHTML = '🔒 RIFA ENCERRADA 🔒';
+      document.getElementById('numerosSection').style.display = 'none';
+      document.getElementById('ganhadorSection').style.display = 'block';
+      document.getElementById('ganhadorSection').innerHTML = `<h2>🔒 RIFA ENCERRADA</h2><div class="brinde-area"><img src="${configAtual.foto_url || ''}" style="max-width:200px"><p>Esta rifa foi encerrada sem ganhador definido.</p></div>`;
+      return;
+    }
+    
+    // Sorteio por pontos disponíveis
+    if (tipoSorteio === 'pontos') {
+      if (disponiveis === 0) {
+        contDiv.innerHTML = '🎲 TODOS OS NÚMEROS FORAM VENDIDOS! Aguardando definição do ganhador... 🎲';
+        document.getElementById('numerosSection').style.display = 'block';
+        document.getElementById('ganhadorSection').style.display = 'none';
+      } else {
+        contDiv.innerHTML = `🎟️ SORTEIO AUTOMÁTICO QUANDO TODOS OS NÚMEROS FOREM VENDIDOS<br>📊 Faltam ${disponiveis} números para o sorteio!`;
+        document.getElementById('numerosSection').style.display = 'block';
+        document.getElementById('ganhadorSection').style.display = 'none';
+      }
+      return;
+    }
+    
+    // Sorteio por tempo
+    if (!configAtual.data_sorteio) {
+      contDiv.innerHTML = '📅 Data do sorteio não definida';
+      document.getElementById('numerosSection').style.display = 'block';
+      document.getElementById('ganhadorSection').style.display = 'none';
+      return;
+    }
+    
+    const diff = new Date(configAtual.data_sorteio).getTime() - new Date().getTime();
+    
+    if (diff <= 0) {
+      contDiv.innerHTML = '⏳ Aguardando registro do ganhador...';
+      document.getElementById('numerosSection').style.display = 'none';
+      document.getElementById('ganhadorSection').style.display = 'block';
+      document.getElementById('ganhadorSection').innerHTML = `<h2>🎁 Sorteio realizado!</h2><div class="brinde-area"><img src="${configAtual.foto_url || ''}" style="max-width:200px"><p>Brinde: ${configAtual.titulo || 'Rifa Online'}</p><p>⏳ Aguardando o administrador definir o ganhador...</p></div>`;
+    } else {
+      const dias = Math.floor(diff / 86400000), horas = Math.floor((diff % 86400000) / 3600000), minutos = Math.floor((diff % 3600000) / 60000), seg = Math.floor((diff % 60000) / 1000);
+      contDiv.innerHTML = `⏰ SORTEIO EM:<br>${dias}d ${horas}h ${minutos}m ${seg}s`;
+      document.getElementById('numerosSection').style.display = 'block';
+      document.getElementById('ganhadorSection').style.display = 'none';
+    }
+  }
+
+  document.getElementById('meusNumerosBtn').onclick = async () => {
+    await carregarCompradores();
+    document.getElementById('buscaNome').value = '';
+    document.getElementById('sugestoes').innerHTML = '';
+    document.getElementById('sugestoes').style.display = 'none';
+    document.getElementById('resultadoBusca').innerHTML = '';
+    document.getElementById('modalBusca').style.display = 'flex';
+  };
+  document.getElementById('fecharBusca').onclick = () => {
+    document.getElementById('modalBusca').style.display = 'none';
+    document.getElementById('resultadoBusca').innerHTML = '';
+    document.getElementById('buscaNome').value = '';
+    document.getElementById('sugestoes').innerHTML = '';
+    document.getElementById('sugestoes').style.display = 'none';
+  };
+  document.getElementById('whatsappBtn').onclick = () => {
+    let texto = configAtual?.texto_compartilhamento || 'Participe da rifa online! 🎟️';
+    texto += `\n\nLink: ${window.location.href}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+  };
+
+  async function iniciar() {
+    await carregarValorPonto();
+    await carregarConfig();
+    await carregarNumeros();
+    atualizarContador();
+    setInterval(async () => { 
+      await carregarConfig(); 
+      await carregarNumeros(); 
+      atualizarContador(); 
+    }, 5000);
+  }
+  iniciar();
+</script>
+</body>
+</html>
